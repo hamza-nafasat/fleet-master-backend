@@ -8,103 +8,107 @@ import Sensor from "../../models/sensorModel/sensor.model.js";
 // create device
 // -------------
 const createDevice = TryCatch(
-    async (req: Request<{}, {}, DeviceTypes>, res: Response, next: NextFunction) => {
-        const ownerId = req.user?._id;
-        const { name, type, ip, uniqueId } = req.body;
-        console.log(req.body);
-        if (!name || !type || !ip || !uniqueId)
-            return next(createHttpError.BadRequest("All fields are required"));
-        await Device.create({ name, type, ip, uniqueId, ownerId });
-        res.status(201).json({ success: true, message: "Device created successfully" });
-    }
+  async (req: Request<{}, {}, DeviceTypes>, res: Response, next: NextFunction) => {
+    const ownerId = req.user?._id;
+    const { name, type, ip, uniqueId, url } = req.body;
+    if (!name || !type || !ip || !uniqueId)
+      return next(createHttpError.BadRequest("All fields are required"));
+    if (type === "vide" && !url) return next(createHttpError.BadRequest("Url is required for video sensor"));
+    await Device.create({ name, type, ip, uniqueId, ownerId, url: url || null });
+    res.status(201).json({ success: true, message: "Device created successfully" });
+  }
 );
 
 // get single device
 // -----------------
 const getSingleDevice = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    const ownerId = req.user?._id;
-    const deviceId = req?.params?.deviceId;
-    const device = await Device.findOne({ _id: deviceId, ownerId });
-    if (!device) return next(createHttpError.NotFound("Device Not Found"));
-    res.status(200).json({ success: true, data: device });
+  const ownerId = req.user?._id;
+  const deviceId = req?.params?.deviceId;
+  const device = await Device.findOne({ _id: deviceId, ownerId });
+  if (!device) return next(createHttpError.NotFound("Device Not Found"));
+  res.status(200).json({ success: true, data: device });
 });
 
 // update device
 // -------------
 const updateDevice = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    const ownerId = req.user?._id;
-    const deviceId = req?.params?.deviceId;
-    const { name, type, ip, uniqueId } = req.body;
-    if (!name && !type && !ip && !uniqueId) return next(createHttpError.BadRequest("Nothing For Update"));
-    const device = await Device.findOne({ _id: deviceId, ownerId });
-    if (!device) return next(createHttpError.NotFound("Device Not Found"));
-    if (name) device.name = name;
-    if (type) device.type = type;
-    if (ip) device.ip = ip;
-    if (uniqueId) device.uniqueId = uniqueId;
-    await device.save();
+  const ownerId = req.user?._id;
+  const deviceId = req?.params?.deviceId;
+  const { name, type, ip, uniqueId, url } = req.body;
+  if (!name && !type && !ip && !uniqueId && !url) {
+    return next(createHttpError.BadRequest("Nothing For Update"));
+  }
+  const device = await Device.findOne({ _id: deviceId, ownerId });
+  if (!device) return next(createHttpError.NotFound("Device Not Found"));
+  if (name) device.name = name;
+  if (type) device.type = type;
+  if (ip) device.ip = ip;
+  if (url && url == "remove") device.url = null;
+  if (url && url != "remove") device.url = url;
+  if (uniqueId) device.uniqueId = uniqueId;
+  await device.save();
 
-    res.status(200).json({ success: true, message: "Device updated successfully" });
+  res.status(200).json({ success: true, message: "Device updated successfully" });
 });
 
 // delete device
 // -------------
 const deleteDevice = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    const ownerId = req.user?._id;
-    const deviceId = req?.params?.deviceId;
-    const device = await Device.findOneAndDelete({ _id: deviceId, ownerId });
-    if (!device) return next(createHttpError.NotFound("Device Not Found"));
-    res.status(200).json({ success: true, message: "Device deleted successfully" });
+  const ownerId = req.user?._id;
+  const deviceId = req?.params?.deviceId;
+  const device = await Device.findOneAndDelete({ _id: deviceId, ownerId });
+  if (!device) return next(createHttpError.NotFound("Device Not Found"));
+  res.status(200).json({ success: true, message: "Device deleted successfully" });
 });
 
 // get all devices
 // ---------------
 const getAllDevices = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    const ownerId = req.user?._id;
-    const devices = await Device.find({ ownerId }).populate("assignedTo");
-    res.status(200).json({ success: true, data: devices });
+  const ownerId = req.user?._id;
+  const devices = await Device.find({ ownerId }).populate("assignedTo");
+  res.status(200).json({ success: true, data: devices });
 });
 
 // get device data by unique id
 // -------------------------------
 const getSingleDeviceLatestData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    const { uniqueId } = req.query;
-    const sensors = await Sensor.find({
-        payload: { $regex: `\"uniqueId\": \"${uniqueId}\"` },
-    });
-    if (!sensors || sensors.length === 0) {
-        return next(createHttpError.NotFound("Device Not Found"));
-    }
-    const parsedSensors = sensors.map((sensor: any) => {
-        const parsedPayload = JSON.parse(sensor.payload);
-        return {
-            _id: sensor._id,
-            topic: sensor.topic,
-            payload: parsedPayload,
-            timestamp: parsedPayload.timestamp,
-        };
-    });
-    parsedSensors.sort((a: any, b: any) => b.timestamp - a.timestamp);
-    const latestSensor = parsedSensors[0];
-    res.status(200).json({ success: true, data: latestSensor });
+  const { uniqueId } = req.query;
+  const sensors = await Sensor.find({
+    payload: { $regex: `\"uniqueId\": \"${uniqueId}\"` },
+  });
+  if (!sensors || sensors.length === 0) {
+    return next(createHttpError.NotFound("Device Not Found"));
+  }
+  const parsedSensors = sensors.map((sensor: any) => {
+    const parsedPayload = JSON.parse(sensor.payload);
+    return {
+      _id: sensor._id,
+      topic: sensor.topic,
+      payload: parsedPayload,
+      timestamp: parsedPayload.timestamp,
+    };
+  });
+  parsedSensors.sort((a: any, b: any) => b.timestamp - a.timestamp);
+  const latestSensor = parsedSensors[0];
+  res.status(200).json({ success: true, data: latestSensor });
 });
 
 // add sensor data
 // ----------------
 const addSensorData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-    let { topic, payload } = req.body;
-    const sensor = await Sensor.create({ topic, payload: JSON.stringify(payload) });
-    res.status(200).json({ success: true, data: "data sended successfully" });
+  let { topic, payload } = req.body;
+  const sensor = await Sensor.create({ topic, payload: JSON.stringify(payload) });
+  res.status(200).json({ success: true, data: "data sended successfully" });
 });
 
 export {
-    createDevice,
-    getSingleDevice,
-    deleteDevice,
-    getAllDevices,
-    updateDevice,
-    getSingleDeviceLatestData,
-    addSensorData,
+  createDevice,
+  getSingleDevice,
+  deleteDevice,
+  getAllDevices,
+  updateDevice,
+  getSingleDeviceLatestData,
+  addSensorData,
 };
 
 // {

@@ -15,13 +15,7 @@ import bodyParser from "body-parser";
 
 const app = express();
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "https://fleat-frontend-aa7x.vercel.app",
-    "http://localhost:5174",
-    "https://fleet-master-chi.vercel.app",
-    "https://fleet-master-tetratech.vercel.app",
-  ],
+  origin: ["http://localhost:5173", "https://fleet-master-frontend.vercel.app", "http://localhost:5174"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 };

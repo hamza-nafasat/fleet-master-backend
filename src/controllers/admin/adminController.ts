@@ -9,6 +9,8 @@ import { Truck } from "../../models/truckModel/truck.model.js";
 import { Driver } from "../../models/driverModel/driver.model.js";
 import { Employ } from "../../models/employModel/employ.model.js";
 import { Report } from "../../models/reportModel/report.modal.js";
+import { Device } from "../../models/deviceModel/device.model.js";
+import Notification from "../../models/notificationModel/notification.model.js";
 
 // update user profile
 //----------------------
@@ -132,4 +134,46 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
   res.status(200).json({ success: true, data: modifiedReports });
 });
 
-export { updateUserProfile, getAllUsers, deleteUser, getSingleTruckReport };
+// get admin dashboard details
+const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
+  const totalConnectedTrucksPromise = Truck.countDocuments({ status: "connected" });
+  const totalNotConnectedTrucksPromise = Truck.countDocuments({ status: "not-connected" });
+  const totalTrucksPromise = Truck.countDocuments();
+  const totalDriversPromise = Driver.countDocuments();
+  const totalEmployeesPromise = Employ.countDocuments();
+  const totalDevicesPromise = Device.countDocuments();
+  const totalAlarmsPromise = Notification.countDocuments({ isRead: false });
+
+  const [
+    totalAssignedTrucks,
+    totalUnAssignedTrucks,
+    totalTrucks,
+    totalDrivers,
+    totalEmployees,
+    totalDevices,
+    totalAlarms,
+  ] = await Promise.all([
+    totalConnectedTrucksPromise,
+    totalNotConnectedTrucksPromise,
+    totalTrucksPromise,
+    totalDriversPromise,
+    totalEmployeesPromise,
+    totalDevicesPromise,
+    totalAlarmsPromise,
+  ]);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      totalAssignedTrucks,
+      totalUnAssignedTrucks,
+      totalTrucks,
+      totalDrivers,
+      totalEmployees,
+      totalDevices,
+      totalAlarms,
+    },
+  });
+});
+
+export { updateUserProfile, getAllUsers, deleteUser, getSingleTruckReport, getAdminDashboardDetails };

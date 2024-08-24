@@ -1,5 +1,6 @@
 import {
   deleteUser,
+  getAdminDashboardDetails,
   getAllUsers,
   getSingleTruckReport,
   updateUserProfile,
@@ -19,4 +20,7 @@ export const adminRoutes = (app: any) => {
 
   // get single truck reports
   app.get("/api/admin/truck-reports", auth, isAdmin, getSingleTruckReport);
+
+  // get admin dashboard details
+  app.get("/api/admin/dashboard/details", auth, isAdmin, getAdminDashboardDetails);
 };

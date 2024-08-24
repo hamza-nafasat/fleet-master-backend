@@ -5,7 +5,7 @@ import { createServer } from "http";
 import morgan from "morgan";
 import path from "path";
 import { Server, Socket } from "socket.io";
-import { __dirName } from "./constants/costants.js";
+import { __dirName } from "./constants/constants.js";
 import { isSocketAuth } from "./middlewares/auth.js";
 import { Errorhandler } from "./middlewares/errorHandler.js";
 import { allApiRoutes } from "./routes/index.routes.js";

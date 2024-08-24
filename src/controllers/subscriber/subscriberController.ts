@@ -200,3 +200,10 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Unhandled Event Type" });
   }
 });
+
+// http://localhost:8000/api/v1/subscription/subscribers
+// get all subscriber list
+export const getAllSubscriber = TryCatch(async (req, res, next) => {
+  const subscribers = await Subscriber.find().populate("user");
+  res.status(200).json({ success: true, data: subscribers });
+});

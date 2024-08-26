@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
-import { socketEvent, watchPolygonTrucksData } from "../constants/socketState.js";
+import {
+  findClientNotifications,
+  isInClientNotificationsType,
+  socketEvent,
+  watchPolygonTrucksData,
+} from "../constants/socketState.js";
 import { Truck } from "../models/truckModel/truck.model.js";
 import { emitEvent, emitNotification } from "./socket.js";
 import pointInPolygon from "point-in-polygon";
@@ -20,7 +25,7 @@ const sensorWatcher = () => {
       const truckLatitude = payload.gps.latitude;
       const truckLongitude = payload.gps.longitude;
       const speed = payload?.speed;
-      console.log("payload", payload);
+      // console.log("payload", payload);
       if (watchPolygonTrucksData.has(String(truckId))) {
         const updateTruckPromise = Truck.findByIdAndUpdate(
           truckId,
@@ -45,6 +50,7 @@ const sensorWatcher = () => {
       });
       // if exist in geofence then check if it is in or out and create a notification
       if (isTruckInAnyGeoFence) {
+        const clientNotifications = findClientNotifications(ownerId);
         const coordinatesOfArea = isTruckInAnyGeoFence.area?.coordinates;
         const alertType = isTruckInAnyGeoFence?.alert;
         let isTruckCrossedGeoFence = checkIfTruckInsideGeoFence(
@@ -53,15 +59,23 @@ const sensorWatcher = () => {
           truckLongitude
         );
         console.log("alert types", alertType, isTruckCrossedGeoFence);
-        if (alertType == "infence") {
-          if (isTruckCrossedGeoFence == "in") {
-            console.log("truck is in geo fence");
-            addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area");
+        console.log("clientNotifications", clientNotifications);
+
+        if (isInClientNotificationsType("infence", clientNotifications) && isTruckCrossedGeoFence == "in") {
+          console.log("truck is in geo fence");
+          if (alertType == "infence") {
+            await addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area", String(truckId));
           }
         }
-        if (alertType == "outfence") {
-          if (isTruckCrossedGeoFence == "out") {
-            addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area");
+        if (isInClientNotificationsType("outfence", clientNotifications) && isTruckCrossedGeoFence == "out") {
+          console.log("truck is out of geo fence");
+          if (alertType == "outfence") {
+            await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
+          }
+        }
+        if (isInClientNotificationsType("speed", clientNotifications)) {
+          if (speed > 40) {
+            await addNotificationInDb(ownerId, "speed", "Truck Speed Exceeded", String(truckId));
           }
         }
       }

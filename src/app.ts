@@ -49,7 +49,7 @@ io.on("connection", (socket: Socket) => {
     const flattenedTruckIds = truckIds.flat();
     const uniqueTruckIdsSet = new Set(flattenedTruckIds);
     uniqueTruckIdsSet.forEach((id) => watchPolygonTrucksData.add(id));
-    console.log(watchPolygonTrucksData);
+    console.log("geofence ids", watchPolygonTrucksData);
   });
 
   socket.on(socketEvent.WANT_TRACKING_DATA, (truckIds: string[]) => {

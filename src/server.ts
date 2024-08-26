@@ -2,7 +2,7 @@ import { app, server as socket } from "./app.js";
 import { config } from "./config/config.js";
 import { connectDB } from "./database/connection.js";
 import { configureCloudinary } from "./utils/cloudinary.js";
-import { sensorWatcher } from "./utils/mongoWatcher.js";
+import { notificationWatcher, sensorWatcher } from "./utils/mongoWatcher.js";
 
 // server listen and database connection
 (async () => {
@@ -13,6 +13,7 @@ import { sensorWatcher } from "./utils/mongoWatcher.js";
     await connectDB(config.getEnv("DATABASE_URL"));
     // sensor watcher
     sensorWatcher();
+    notificationWatcher();
     socket.listen(PORT, () => console.log(`Server running at port ${PORT}`));
     process.on("unhandledRejection", (err: any) => {
       console.log(`Error: ${err.message}`);

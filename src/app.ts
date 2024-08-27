@@ -21,7 +21,7 @@ import { Alert } from "./models/alertModel/alert.model.js";
 
 const app = express();
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://fleet-master-frontend.vercel.app"],
   credentials: true,
 };
 

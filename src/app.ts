@@ -21,9 +21,8 @@ import { Alert } from "./models/alertModel/alert.model.js";
 
 const app = express();
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://fleet-master-frontend.vercel.app"],
+  origin: "http://localhost:5173",
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE"],
 };
 
 // middleware
@@ -64,6 +63,7 @@ io.on("connection", (socket: Socket) => {
     const modifiedAlerts = alert.map((alert) => {
       return {
         type: alert.type,
+        status: alert.status,
         platform: alert.platform,
       };
     });

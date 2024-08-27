@@ -53,24 +53,17 @@ const sensorWatcher = () => {
         const clientNotifications = findClientNotifications(ownerId);
         const coordinatesOfArea = isTruckInAnyGeoFence.area?.coordinates;
         const alertType = isTruckInAnyGeoFence?.alert;
-        let isTruckCrossedGeoFence = checkIfTruckInsideGeoFence(
-          coordinatesOfArea,
-          truckLatitude,
-          truckLongitude
-        );
-        // console.log("alert types", alertType, isTruckCrossedGeoFence);
+        let isTruckCrossed = checkIfTruckInsideGeoFence(coordinatesOfArea, truckLatitude, truckLongitude);
+        // console.log("alert types", alertType, isTruckCrossed);
         // console.log("clientNotifications", clientNotifications);
 
-        if (isInClientNotificationsType("infence", clientNotifications) && isTruckCrossedGeoFence == "in") {
+        if (isInClientNotificationsType("infence", clientNotifications) && isTruckCrossed == "in") {
           // console.log("truck is in geo fence");
           if (alertType == "infence") {
             await addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area", String(truckId));
           }
         }
-        if (
-          isInClientNotificationsType("outfence", clientNotifications) &&
-          isTruckCrossedGeoFence == "out"
-        ) {
+        if (isInClientNotificationsType("outfence", clientNotifications) && isTruckCrossed == "out") {
           // console.log("truck is out of geo fence");
           if (alertType == "outfence") {
             await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));

@@ -58,11 +58,11 @@ const sensorWatcher = () => {
           truckLatitude,
           truckLongitude
         );
-        console.log("alert types", alertType, isTruckCrossedGeoFence);
-        console.log("clientNotifications", clientNotifications);
+        // console.log("alert types", alertType, isTruckCrossedGeoFence);
+        // console.log("clientNotifications", clientNotifications);
 
         if (isInClientNotificationsType("infence", clientNotifications) && isTruckCrossedGeoFence == "in") {
-          console.log("truck is in geo fence");
+          // console.log("truck is in geo fence");
           if (alertType == "infence") {
             await addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area", String(truckId));
           }
@@ -71,7 +71,7 @@ const sensorWatcher = () => {
           isInClientNotificationsType("outfence", clientNotifications) &&
           isTruckCrossedGeoFence == "out"
         ) {
-          console.log("truck is out of geo fence");
+          // console.log("truck is out of geo fence");
           if (alertType == "outfence") {
             await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
           }
@@ -98,7 +98,7 @@ const notificationWatcher = () => {
   changeStream.on("change", async (change: any) => {
     if (change.operationType === "insert") {
       const document = change.fullDocument;
-      console.log("notification added", document);
+      // console.log("notification added", document);
       const toId = document?.to;
       await emitNotification(socketEvent.NOTIFICATIONS, toId, "notification");
     }

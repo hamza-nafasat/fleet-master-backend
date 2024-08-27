@@ -77,7 +77,7 @@ const sensorWatcher = () => {
           }
         }
         if (isInClientNotificationsType("speed", clientNotifications)) {
-          if (speed > 40) {
+          if (speed > 50) {
             await addNotificationInDb(ownerId, "speed", "Truck Speed Exceeded", String(truckId));
           }
         }

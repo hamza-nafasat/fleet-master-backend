@@ -19,7 +19,7 @@ const sensorWatcher = () => {
   changeStream.on("change", async (change: any) => {
     if (change.operationType === "insert") {
       const document = change.fullDocument;
-      const payload = JSON.parse(document?.payload);
+      const payload = JSON.parse(JSON.stringify(document?.payload));
       const truckId = payload.truckId;
       const ownerId = payload.ownerId;
       const truckLatitude = payload.gps.latitude;
@@ -67,7 +67,10 @@ const sensorWatcher = () => {
             await addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area", String(truckId));
           }
         }
-        if (isInClientNotificationsType("outfence", clientNotifications) && isTruckCrossedGeoFence == "out") {
+        if (
+          isInClientNotificationsType("outfence", clientNotifications) &&
+          isTruckCrossedGeoFence == "out"
+        ) {
           console.log("truck is out of geo fence");
           if (alertType == "outfence") {
             await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));

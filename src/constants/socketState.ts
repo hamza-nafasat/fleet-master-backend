@@ -13,11 +13,11 @@ const findClientNotifications = (userId: string) => {
   return clientNotificationsSelection.get(String(userId));
 };
 const isInClientNotificationsType = (type: string, notifications: any) => {
-  return notifications.some((notification: any) => notification.type === type);
+  return notifications?.some((notification: any) => notification?.type === type);
 };
 const isNotificationOnEmail = (type: string, notifications: any) => {
-  return notifications.some(
-    (notification: any) => notification.type === type && notification.platform == "email"
+  return notifications?.some(
+    (notification: any) => notification?.type === type && notification?.platform == "email"
   );
 };
 

@@ -16,7 +16,7 @@ import { notificationWatcher, sensorWatcher } from "./utils/mongoWatcher.js";
     notificationWatcher();
     socket.listen(PORT, () => console.log(`Server running at port ${PORT}`));
     process.on("unhandledRejection", (err: any) => {
-      console.log(`Error: ${err.message}`);
+      console.log(err);
       console.log("Shutting down the server due to unhandled promise rejection");
       process.exit(1);
     });

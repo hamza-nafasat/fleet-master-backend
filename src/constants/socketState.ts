@@ -2,6 +2,8 @@ const watchPolygonTrucksData = new Set();
 const liveSockets = new Map();
 const clientNotificationsSelection = new Map();
 
+const notificationSent: any[] = [];
+
 const socketEvent = {
   SENSORS_DATA: "SENSORS_DATA",
   WANT_TRACKING_DATA: "WANT_TRACKING_DATA",
@@ -21,6 +23,38 @@ const isNotificationOnEmail = (type: string, notifications: any) => {
   );
 };
 
+const isAlreadySentNotification = (type: string, truckId: string) => {
+  const findClientSentNotifications = notificationSent.find(
+    (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
+  );
+  if (findClientSentNotifications) return true;
+  else return false;
+};
+
+const addInSentNotification = (type: string, truckId: string) => {
+  const findClientSentNotifications = notificationSent.find(
+    (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
+  );
+  if (!findClientSentNotifications) {
+    notificationSent.push({ type, truckId });
+    return true;
+  } else {
+    return false;
+  }
+};
+
+const removeInSentNotification = (type: string, truckId: string) => {
+  const findClientSentNotifications = notificationSent.find(
+    (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
+  );
+  if (findClientSentNotifications) {
+    notificationSent.splice(notificationSent.indexOf(findClientSentNotifications), 1);
+    return true;
+  } else {
+    return false;
+  }
+};
+
 export {
   liveSockets,
   watchPolygonTrucksData,
@@ -29,4 +63,7 @@ export {
   findClientNotifications,
   isInClientNotificationsType,
   isNotificationOnEmail,
+  isAlreadySentNotification,
+  addInSentNotification,
+  removeInSentNotification,
 };

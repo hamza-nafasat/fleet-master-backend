@@ -1,17 +1,19 @@
 import mongoose from "mongoose";
+import pointInPolygon from "point-in-polygon";
 import {
+  addInSentNotification,
   findClientNotifications,
+  isAlreadySentNotification,
   isInClientNotificationsType,
+  removeInSentNotification,
   socketEvent,
   watchPolygonTrucksData,
 } from "../constants/socketState.js";
-import { Truck } from "../models/truckModel/truck.model.js";
-import { emitEvent, emitNotification } from "./socket.js";
-import pointInPolygon from "point-in-polygon";
 import GeoFence from "../models/geoFenceModel/geoFence.model.js";
-import { addNotificationInDb } from "./addNotification.js";
 import { Report } from "../models/reportModel/report.modal.js";
-import Notification from "../models/notificationModel/notification.model.js";
+import { Truck } from "../models/truckModel/truck.model.js";
+import { addNotificationInDb } from "./addNotification.js";
+import { emitEvent, emitNotification } from "./socket.js";
 
 const sensorWatcher = () => {
   const sensorsCollection = mongoose.connection.collection("sensors");
@@ -57,21 +59,60 @@ const sensorWatcher = () => {
         // console.log("alert types", alertType, isTruckCrossed);
         // console.log("clientNotifications", clientNotifications);
 
+        // send notification in-fence
+        // --------------------------
         if (isInClientNotificationsType("infence", clientNotifications) && isTruckCrossed == "in") {
+          // remove from out-fence notificationSent
+          removeInSentNotification("outfence", truckId);
           // console.log("truck is in geo fence");
           if (alertType == "infence") {
-            await addNotificationInDb(ownerId, alertType, "Truck Entered In Marked Area", String(truckId));
+            const isInFenceNotificationSent = isAlreadySentNotification("infence", truckId);
+            if (!isInFenceNotificationSent) {
+              // add in sent notification
+              addInSentNotification("infence", truckId);
+              // send notification
+              await addNotificationInDb(
+                ownerId,
+                alertType,
+                "Truck Entered In Marked Area",
+                String(truckId)
+              );
+            }
           }
         }
+        // send out-fence notification
+        // --------------------------
         if (isInClientNotificationsType("outfence", clientNotifications) && isTruckCrossed == "out") {
+          // remove from in-fence notificationSent
+          removeInSentNotification("infence", truckId);
           // console.log("truck is out of geo fence");
           if (alertType == "outfence") {
-            await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
+            const isOutFenceNotificationSent = isAlreadySentNotification("outfence", truckId);
+            if (!isOutFenceNotificationSent) {
+              // add in sent notification
+              addInSentNotification("outfence", truckId);
+              // send notification
+              await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
+            }
           }
         }
+        // send out speed notification
+        // --------------------------
         if (isInClientNotificationsType("speed", clientNotifications)) {
           if (speed > 50) {
-            await addNotificationInDb(ownerId, "speed", "Truck Speed Exceeded", String(truckId));
+            const isSpeedNotificationSent = isAlreadySentNotification("speed", truckId);
+            if (!isSpeedNotificationSent) {
+              // add in sent notification
+              addInSentNotification("speed", truckId);
+              // send notification
+              await addNotificationInDb(ownerId, "speed", "Truck Speed Exceeded", String(truckId));
+            }
+          }
+        }
+        // remove from sent notifications if speed is slow after fast
+        if (isInClientNotificationsType("speed", clientNotifications)) {
+          if (speed < 50) {
+            removeInSentNotification("speed", truckId);
           }
         }
       }
@@ -98,4 +139,4 @@ const notificationWatcher = () => {
   });
 };
 
-export { sensorWatcher, notificationWatcher };
+export { notificationWatcher, sensorWatcher };

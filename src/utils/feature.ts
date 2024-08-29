@@ -8,6 +8,7 @@ const getNewAlertsForUserAndSaveInState = async (userId: any) => {
       type: alert.type,
       status: alert.status,
       platform: alert.platform,
+      severity: alert.severity,
     };
   });
   clientNotificationsSelection.set(String(userId), modifiedAlerts);

@@ -65,6 +65,7 @@ io.on("connection", (socket: Socket) => {
         type: alert.type,
         status: alert.status,
         platform: alert.platform,
+        severity: alert.severity,
       };
     });
     clientNotificationsSelection.set(userRealId, modifiedAlerts);

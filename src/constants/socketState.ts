@@ -15,7 +15,9 @@ const findClientNotifications = (userId: string) => {
   return clientNotificationsSelection.get(String(userId));
 };
 const isInClientNotificationsType = (type: string, notifications: any) => {
-  return notifications?.some((notification: any) => notification?.type === type);
+  const value = notifications?.find((notification: any) => notification?.type === type);
+  if (value) return value;
+  else return false;
 };
 const isNotificationOnEmail = (type: string, notifications: any) => {
   return notifications?.some(
@@ -24,6 +26,7 @@ const isNotificationOnEmail = (type: string, notifications: any) => {
 };
 
 const isAlreadySentNotification = (type: string, truckId: string) => {
+  console.log("notificationSent", notificationSent);
   const findClientSentNotifications = notificationSent.find(
     (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
   );
@@ -32,6 +35,7 @@ const isAlreadySentNotification = (type: string, truckId: string) => {
 };
 
 const addInSentNotification = (type: string, truckId: string) => {
+  console.log("add " + type + "  in notifications ");
   const findClientSentNotifications = notificationSent.find(
     (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
   );
@@ -44,6 +48,8 @@ const addInSentNotification = (type: string, truckId: string) => {
 };
 
 const removeInSentNotification = (type: string, truckId: string) => {
+  console.log("remove " + type + "  from notifications ");
+
   const findClientSentNotifications = notificationSent.find(
     (item) => String(item.type) === String(type) && String(item.truckId) === String(truckId)
   );

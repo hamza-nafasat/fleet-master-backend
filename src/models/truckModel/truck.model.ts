@@ -12,7 +12,7 @@ const truckSchema = new Schema<SchemaTruckTypes>(
     ownerId: { type: String, required: true },
     truckName: { type: String, required: true },
     fleetNumber: { type: Number, required: true },
-    plateNumber: { type: Number, required: true, unique: true },
+    plateNumber: { type: String, required: true, unique: true },
     devices: { type: [Schema.Types.ObjectId], ref: "Device", default: [] },
     image: { type: imageSchema, required: true },
     latitude: { type: Number },

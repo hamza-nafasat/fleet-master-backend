@@ -117,9 +117,7 @@ const getSingleTruck = TryCatch(async (req, res, next) => {
   const { truckId } = req.params;
   if (!isValidObjectId(truckId)) return next(createHttpError(400, "Invalid Truck Id"));
   // get truck
-  const truck = await Truck.findOne({ _id: truckId, ownerId })
-    // .populate("assignedTo", "firstName lastName")
-    .populate("devices");
+  const truck = await Truck.findOne({ _id: truckId, ownerId }).populate("assignedTo").populate("devices");
   if (!truck) return next(createHttpError(404, "Truck Not Found"));
   res.status(200).json({ success: true, truck });
 });

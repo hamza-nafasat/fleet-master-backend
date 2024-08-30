@@ -75,7 +75,8 @@ const deleteUser = TryCatch(async (req, res, next) => {
   ]);
   if (trucks.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Trucks"));
   if (drivers.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Drivers"));
-  if (employees.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Employees"));
+  if (employees.deletedCount === 0)
+    return next(createHttpError(400, "Error While Deleting User Employees"));
   return res.status(200).json({ success: true, message: "User Deleted Successfully" });
 });
 
@@ -84,35 +85,39 @@ const deleteUser = TryCatch(async (req, res, next) => {
 const getSingleTruckReport = TryCatch(async (req, res, next) => {
   const { timeTo, timeFrom, plateNumber } = req.query;
 
-  if (!timeTo || !timeFrom || !plateNumber) {
-    return next(createHttpError(400, "Please provide all fields"));
-  }
+  // if (!timeTo || !timeFrom || !plateNumber) {
+  //   return next(createHttpError(400, "Please provide all fields"));
+  // }
 
   // Create date objects for the query range
-  const startDate = new Date(timeFrom);
-  const endDate = new Date(timeTo);
 
-  console.log(startDate, endDate);
-  if (startDate > endDate) {
-    return next(createHttpError(400, "Start date cannot be greater than end date"));
+  let driverName: any;
+  let gpsDevice: any;
+  let truckStatus: any;
+  const reportData: any = {};
+  if (timeFrom) {
+    const startDate = new Date(timeFrom);
+    reportData["createdAt"] = { $gte: startDate };
   }
-
-  // Find the truck by plate number
-  const truck: any = await Truck.findOne({ plateNumber }).populate("assignedTo").populate("devices");
-  if (!truck) {
-    return next(createHttpError(404, "Truck not found. Please provide a correct plate number"));
+  if (timeTo) {
+    const endDate = new Date(timeTo);
+    reportData["createdAt"] = { $lte: endDate };
   }
-  const driverName = `${truck?.assignedTo?.firstName} ${truck?.assignedTo?.lastName}`;
-  const gpsDevice = truck?.devices?.find((device: any) => device?.type === "gps")?._id;
-  const truckStatus = truck?.status;
+  if (plateNumber) {
+    // Find the truck by plate number
+    const truck: any = await Truck.findOne({ plateNumber }).populate("assignedTo").populate("devices");
+    if (!truck) {
+      return next(createHttpError(404, "Truck not found. Please provide a correct plate number"));
+    }
 
+    driverName = `${truck?.assignedTo?.firstName} ${truck?.assignedTo?.lastName}`;
+    gpsDevice = truck?.devices?.find((device: any) => device?.type === "gps")?._id;
+    truckStatus = truck?.status;
+  }
   // Fetch reports within the specified date range for the given truck
-  const reports = await Report.find({
-    createdAt: {
-      $gte: startDate,
-      $lte: endDate,
-    },
-    truck: truck._id,
+  const reports = await Report.find({ ...reportData }).populate({
+    path: "truck",
+    populate: [{ path: "assignedTo" }, { path: "devices" }],
   });
 
   // Modify the reports to include additional details

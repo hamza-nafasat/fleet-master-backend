@@ -23,7 +23,7 @@ const sensorWatcher = () => {
   changeStream.on("change", async (change: any) => {
     if (change.operationType === "insert") {
       const document = change.fullDocument;
-      const payload = document?.payload;
+      const payload = JSON.parse(document?.payload);
       const truckId = payload.truckId;
       const ownerId = payload.ownerId;
       const truckLatitude = payload.gps.latitude;

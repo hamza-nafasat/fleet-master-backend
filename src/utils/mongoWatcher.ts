@@ -9,13 +9,14 @@ import {
   socketEvent,
   watchPolygonTrucksData,
 } from "../constants/socketState.js";
+import { Device } from "../models/deviceModel/device.model.js";
 import GeoFence from "../models/geoFenceModel/geoFence.model.js";
 import { Report } from "../models/reportModel/report.modal.js";
 import { Truck } from "../models/truckModel/truck.model.js";
+import { User } from "../models/userModel/user.model.js";
+import { sendNotificationMail } from "../services/sendMail.js";
 import { addNotificationInDb } from "./addNotification.js";
 import { emitEvent, emitNotification } from "./socket.js";
-import { User } from "../models/userModel/user.model.js";
-import { sendMail, sendNotificationMail } from "../services/sendMail.js";
 
 const sensorWatcher = () => {
   const sensorsCollection = mongoose.connection.collection("sensors");
@@ -29,11 +30,18 @@ const sensorWatcher = () => {
       const truckLatitude = payload.gps.latitude;
       const truckLongitude = payload.gps.longitude;
       const speed = payload?.speed;
-      // console.log("payload", payload);
+      const uniqueId = payload?.uniqueId;
+      let device: any = await Device.exists({ uniqueId });
       let truckFullData: any;
-      if (watchPolygonTrucksData.has(String(truckId))) {
-        const updateTruckPromise = Truck.findByIdAndUpdate(
-          truckId,
+      if (watchPolygonTrucksData.has(String(truckId)) && device?._id) {
+        const updateTruckPromise = Truck.findOneAndUpdate(
+          {
+            $and: [
+              { _id: truckId },
+              { ["devices._id"]: device?._id },
+              { ["devices.uniqueId"]: device?._id },
+            ],
+          },
           { latitude: truckLatitude, longitude: truckLongitude },
           { new: true }
         );
@@ -51,7 +59,12 @@ const sensorWatcher = () => {
           truckFullDataPromise,
         ]);
         truckFullData = truck;
-        emitEvent(socketEvent.GEOFENCE_TRUCKS_DATA, ownerId, "get single truck data data again");
+        if (truck) {
+          console.log("truck", truck);
+          emitEvent(socketEvent.GEOFENCE_TRUCKS_DATA, ownerId, "get single truck data data again");
+        } else {
+          console.log("some error while fetching single truck data");
+        }
       }
       // find that truck exist in any geofence
       const [isTruckInAnyGeoFence, userData] = await Promise.all([
@@ -63,7 +76,7 @@ const sensorWatcher = () => {
         User.findById(ownerId).select("email firstName lastName"),
       ]);
       // if exist in geofence then check if it is in or out and create a notification
-      if (isTruckInAnyGeoFence && userData) {
+      if (isTruckInAnyGeoFence && userData && truckFullData) {
         const clientNotifications = findClientNotifications(ownerId);
         const coordinatesOfArea = isTruckInAnyGeoFence.area?.coordinates;
         const alertType = isTruckInAnyGeoFence?.alert;

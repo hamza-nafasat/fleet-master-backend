@@ -19,6 +19,7 @@ const getMyAllPresentNotifications = TryCatch(async (req: Request, res, next) =>
   if (!notifications) return next(createHttpError(404, "No Notifications Found"));
   res.status(200).json({ success: true, notifications });
 });
+
 const getMyAllNotification = TryCatch(async (req: Request, res, next) => {
   const ownerId = req.user?._id;
   const notifications = await Notification.find({ to: ownerId }).sort({ isRead: 1, createdAt: -1 });

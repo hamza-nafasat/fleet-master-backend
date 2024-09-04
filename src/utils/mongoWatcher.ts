@@ -72,6 +72,7 @@ const sensorWatcher = () => {
           ownerId,
           trucks: { $in: [truckId] },
           status: "active",
+          $and: [{ startDate: { $lte: new Date() } }, { endDate: { $gte: new Date() } }],
         }),
         User.findById(ownerId).select("email firstName lastName"),
       ]);

@@ -22,6 +22,7 @@ const createGeoFence = TryCatch(async (req: Request<{}, {}, GeoFenceTypes>, res,
     alert,
     endDate,
   });
+
   res.status(201).json({ success: true, message: "GeoFence Created Successfully" });
 });
 

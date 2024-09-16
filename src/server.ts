@@ -1,6 +1,7 @@
+import { Sequelize } from "sequelize";
 import { app, server as socket } from "./app.js";
 import { config } from "./config/config.js";
-import { connectDB } from "./database/connection.js";
+import { connectDB, connectPostgres } from "./database/connection.js";
 import { configureCloudinary } from "./utils/cloudinary.js";
 import { notificationWatcher, sensorWatcher } from "./utils/mongoWatcher.js";
 
@@ -11,10 +12,12 @@ import { notificationWatcher, sensorWatcher } from "./utils/mongoWatcher.js";
     await configureCloudinary();
     // Database connection
     await connectDB(config.getEnv("DATABASE_URL"));
+    await connectPostgres();
     // sensor watcher
     sensorWatcher();
     notificationWatcher();
     socket.listen(PORT, () => console.log(`Server running at port ${PORT}`));
+
     process.on("unhandledRejection", (err: any) => {
       console.log(err);
       console.log("Shutting down the server due to unhandled promise rejection");

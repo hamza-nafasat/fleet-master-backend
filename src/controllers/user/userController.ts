@@ -10,7 +10,6 @@ import { UserTypes } from "../../types/userTypes.js";
 import { TryCatch } from "../../utils/tryCatch.js";
 import { User } from "../../models/userModel/user.model.js";
 import { getDataUri, uploadOnCloudinary } from "../../utils/cloudinary.js";
-import { sqlUser } from "../../sequelizeSchemas/schema.js";
 
 //--------------------
 // register controller
@@ -254,12 +253,6 @@ const login = TryCatch(async (req, res, next) => {
   const { email, password } = req.body;
   // match user
   const user = await User.findOne({ email });
-  const spluser = await sqlUser.create({
-    name: "John Doe",
-    email: "johndoe@example.com",
-  });
-  console.log(spluser.toJSON());
-
   if (user) {
     // compare password
     const matchPwd = await bcrypt.compare(password, user.password);

@@ -13,7 +13,8 @@ const createDevice = TryCatch(
     const { name, type, ip, uniqueId, url } = req.body;
     if (!name || !type || !ip || !uniqueId)
       return next(createHttpError.BadRequest("All fields are required"));
-    if (type === "vide" && !url) return next(createHttpError.BadRequest("Url is required for video sensor"));
+    if (type === "vide" && !url)
+      return next(createHttpError.BadRequest("Url is required for video sensor"));
     await Device.create({ name, type, ip, uniqueId, ownerId, url: url || null });
     res.status(201).json({ success: true, message: "Device created successfully" });
   }

@@ -37,6 +37,13 @@ const _config: Config = {
   SUBSCRIPTION_RETURN_URL: process.env.SUBSCRIPTION_RETURN_URL,
 
   DAMAGE_SENSOR_TIME: process.env.DAMAGE_SENSOR_TIME,
+
+  // SQL DB SETTINGS
+  SQL_DB_NAME: process.env.SQL_DB_NAME,
+  SQL_HOST_NAME: process.env.SQL_HOST_NAME,
+  SQL_USERNAME: process.env.SQL_USERNAME,
+  SQL_PASSWORD: process.env.SQL_PASSWORD,
+  SQL_PORT: process.env.SQL_PORT,
 };
 
 export const config = {

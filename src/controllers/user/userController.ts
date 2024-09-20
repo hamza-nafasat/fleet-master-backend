@@ -253,6 +253,7 @@ const login = TryCatch(async (req, res, next) => {
   const { email, password } = req.body;
   // match user
   const user = await User.findOne({ email });
+
   if (user) {
     // compare password
     const matchPwd = await bcrypt.compare(password, user.password);

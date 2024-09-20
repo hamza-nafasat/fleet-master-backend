@@ -4,6 +4,9 @@ import { TryCatch } from "../../utils/tryCatch.js";
 import { DeviceTypes } from "../../types/device.types.js";
 import createHttpError from "http-errors";
 import Sensor from "../../models/sensorModel/sensor.model.js";
+import sensorData from "../../sequelizeSchemas/schema.js";
+import { config } from "../../config/config.js";
+import { doneAllFuncOnOneData } from "../../utils/mongoWatcher.js";
 
 // create device
 // -------------
@@ -94,12 +97,149 @@ const getSingleDeviceLatestData = TryCatch(async (req: Request, res: Response, n
   res.status(200).json({ success: true, data: latestSensor });
 });
 
+// get user latest device data
+// ---------------------------
+const getUserLatestDeviceData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  const ownerId = req.user?._id;
+  if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
+  const { truckId, uniqueId } = req.query;
+  if (!truckId || !uniqueId) return next(createHttpError.BadRequest("truckId and uniqueId are required"));
+  // find data from my sql
+  const deviceLatestData = await sensorData.findOne({
+    where: {
+      truckId: truckId,
+      uniqueId: uniqueId,
+      ownerId: ownerId,
+    },
+    order: [["createdAt", "DESC"]],
+    limit: 1,
+  });
+  if (!deviceLatestData) return next(createHttpError.NotFound("Device Not Found"));
+  res.status(200).json({ success: true, data: deviceLatestData });
+});
+
 // add sensor data
 // ----------------
 const addSensorData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
-  let { topic, payload } = req.body;
-  const sensor = await Sensor.create({ topic, payload: JSON.stringify(payload) });
+  let {
+    topic,
+    type,
+    uniqueId,
+    ownerId,
+    truckId,
+    timestamp,
+    gps_latitude,
+    gps_longitude,
+    gps_altitude,
+    speed,
+    fuel_level,
+    engine_temperature,
+    tire_pressure_front_left,
+    tire_pressure_front_right,
+    tire_pressure_rear_left,
+    tire_pressure_rear_right,
+    battery_voltage,
+    cargo_temperature,
+    driver_status,
+    route_status,
+    odometer,
+    acceleration_x,
+    acceleration_y,
+    acceleration_z,
+    gyroscope_roll,
+    gyroscope_pitch,
+    gyroscope_yaw,
+    maintenance_due,
+  } = req.body;
+  const sensor = await sensorData.create({
+    topic,
+    type,
+    uniqueId,
+    ownerId,
+    truckId,
+    timestamp,
+    gps_latitude,
+    gps_longitude,
+    gps_altitude,
+    speed,
+    fuel_level,
+    engine_temperature,
+    tire_pressure_front_left,
+    tire_pressure_front_right,
+    tire_pressure_rear_left,
+    tire_pressure_rear_right,
+    battery_voltage,
+    cargo_temperature,
+    driver_status,
+    route_status,
+    odometer,
+    acceleration_x,
+    acceleration_y,
+    acceleration_z,
+    gyroscope_roll,
+    gyroscope_pitch,
+    gyroscope_yaw,
+    maintenance_due,
+  });
+  if (!sensor) return next(createHttpError.BadRequest("Sensor Data Not Added"));
   res.status(200).json({ success: true, data: "data sended successfully" });
+});
+
+// get user latest device data
+// ---------------------------
+const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  const ownerId = req.user?._id?.toString();
+  if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
+
+  // Fetch all devices for this user
+  const devicesOfThisUser = await Device.find({
+    ownerId: ownerId,
+    type: "gps",
+    uniqueId: { $exists: true, $ne: null },
+    assignedTo: { $exists: true, $ne: null },
+  });
+  if (!devicesOfThisUser.length) return next(createHttpError.NotFound("Devices Not Found for this user"));
+
+  // Extract unique IDs and truckIds from the devices
+  const uniqueIds = devicesOfThisUser.map((device: any) => device.uniqueId?.toString());
+  const truckIds = devicesOfThisUser.map((device: any) => device.assignedTo?.toString());
+
+  // Fetch the latest sensor data for all devices in a single query
+  const sensorsOfThisUsersDevices = await sensorData.findAll({
+    where: {
+      uniqueId: uniqueIds,
+      ownerId: ownerId,
+      truckId: truckIds,
+    },
+    order: [["createdAt", "DESC"]],
+    limit: 1,
+  });
+
+  const doneAllFuncOnOneDataPromises = sensorsOfThisUsersDevices.map(async (device: any) => {
+    if (device && device?.uniqueId) {
+      await doneAllFuncOnOneData(device);
+    }
+  });
+
+  // Wait for all async operations to complete
+  await Promise.all(doneAllFuncOnOneDataPromises);
+
+  // Map the sensor data back to the devices using uniqueId
+  const obj = devicesOfThisUser.map((device: any) => {
+    let latestSensor = sensorsOfThisUsersDevices.find((sensor: any) => sensor.uniqueId === device.uniqueId);
+    // check if this is created at before 2 min then return null
+    // if (
+    //   latestSensor?.createdAt <
+    //   new Date(new Date().getTime() - Number(config.getEnv("DAMAGE_SENSOR_TIME")) || 300000)
+    // )
+    // latestSensor = null;
+    return {
+      [device.uniqueId]: latestSensor || null,
+    };
+  });
+
+  // Return the object with the device unique IDs and latest sensor data
+  res.status(200).json({ success: true, data: obj });
 });
 
 export {
@@ -110,44 +250,6 @@ export {
   updateDevice,
   getSingleDeviceLatestData,
   addSensorData,
+  getUserLatestDeviceData,
+  getUserLatestDevicesData,
 };
-
-// {
-//     "topic": "fleet/truck_data",
-//     "payload": {
-//         "uniqueId": "1245678",
-//         "ownerId": "666c14e3b9552ffe82c2e144",
-//         "truck_id": "truck_7",
-//         "timestamp": 1719832884.0254388,
-//         "gps": {
-//             "latitude": 32.4279,
-//             "longitude": 53.6880,
-//             "altitude": 809.8577272617125
-//         },
-//         "speed": 0.15332288466532784,
-//         "fuel_level": 69.78690546765293,
-//         "engine_temperature": 72.9582570012823,
-//         "tire_pressure": {
-//             "front_left": 30.591168908883176,
-//             "front_right": 30.436918631113077,
-//             "rear_left": 31.20862302411171,
-//             "rear_right": 32.45954209735951
-//         },
-//         "battery_voltage": 13.272418955373332,
-//         "cargo_temperature": -5.653092866635934,
-//         "driver_status": "driving",
-//         "route_status": "delayed",
-//         "odometer": 625751.9569006935,
-//         "acceleration": {
-//             "x": 5.673495641340345,
-//             "y": -9.121893433694865,
-//             "z": 1.6751827668062074
-//         },
-//         "gyroscope": {
-//             "roll": 124.19050837017585,
-//             "pitch": 56.28113589145582,
-//             "yaw": 97.09270586698909
-//         },
-//         "maintenance_due": false
-//     }
-// }

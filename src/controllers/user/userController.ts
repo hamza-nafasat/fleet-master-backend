@@ -307,7 +307,8 @@ const updateMyProfile = TryCatch(async (req, res, next) => {
       return next(createHttpError(400, "Error While Uploading User Image on Cloudinary"));
     user.image = { url: myCloud.secure_url, public_id: myCloud.public_id };
   }
-  const updatedUser = await user.save();
+  await user.save();
+  const updatedUser = await User.findById(userId).populate("subscriptionId");
 
   return res
     .status(200)

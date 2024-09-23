@@ -60,10 +60,10 @@ const sensorWatcher = () => {
         ]);
         truckFullData = truck;
         if (truck) {
-          console.log("truck", truck);
+          // console.log("truck", truck);
           emitEvent(socketEvent.GEOFENCE_TRUCKS_DATA, ownerId, "get single truck data data again");
         } else {
-          console.log("some error while fetching single truck data");
+          // console.log("some error while fetching single truck data");
         }
       }
       // find that truck exist in any geofence
@@ -98,7 +98,7 @@ const sensorWatcher = () => {
               if (!isInFenceNotificationSent) {
                 // add in sent notification
                 addInSentNotification("infence", truckId);
-                console.log("in fence notifications ", inFenceInClientNotification);
+                // console.log("in fence notifications ", inFenceInClientNotification);
                 // send notification
                 if (inFenceInClientNotification.platform == "platform") {
                   await addNotificationInDb(
@@ -220,7 +220,6 @@ const doneAllFuncOnOneData = async (sensor: any) => {
   const truckLongitude = sensor.gps_longitude;
   const speed = sensor?.speed;
   const uniqueId = sensor?.uniqueId;
-  console.log("sensor ", truckId, ownerId, truckLatitude, truckLongitude, speed, uniqueId);
   let device: any = await Device.exists({ uniqueId });
   let truckFullData: any;
   if (watchPolygonTrucksData.has(String(truckId)) && device?._id) {
@@ -244,10 +243,8 @@ const doneAllFuncOnOneData = async (sensor: any) => {
       reportPromise,
       truckFullDataPromise,
     ]);
-    console.log("updatedTruck", updatedTruck, report, truck);
     truckFullData = truck;
     if (truck) {
-      console.log("truck", truck);
       emitEvent(socketEvent.GEOFENCE_TRUCKS_DATA, ownerId, "get single truck data data again");
     } else {
       console.log("some error while fetching single truck data");
@@ -285,7 +282,6 @@ const doneAllFuncOnOneData = async (sensor: any) => {
           if (!isInFenceNotificationSent) {
             // add in sent notification
             addInSentNotification("infence", truckId);
-            console.log("in fence notifications ", inFenceInClientNotification);
             // send notification
             if (inFenceInClientNotification.platform == "platform") {
               await addNotificationInDb(

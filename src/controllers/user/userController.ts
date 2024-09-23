@@ -282,6 +282,37 @@ const getMyProfile = TryCatch(async (req, res, next) => {
   if (!user) return next(createHttpError(404, "User Not Found"));
   return res.status(200).json({ success: true, user });
 });
+//---------------
+// Update my profile
+//---------------
+const updateMyProfile = TryCatch(async (req, res, next) => {
+  const userId = req.user?._id;
+  const file = req.file;
+  const { firstName, lastName, email, phoneNumber, interval } = req.body;
+  if (!firstName && !lastName && !email && !phoneNumber && !interval && !file) {
+    return next(createHttpError(400, "Please Provide Atleast One Field to Update"));
+  }
+  const user = await User.findById(userId);
+  if (!user) return next(createHttpError(404, "User Not Found"));
+  if (firstName) user.firstName = firstName;
+  if (lastName) user.lastName = lastName;
+  if (email) user.email = email;
+  if (phoneNumber) user.phoneNumber = phoneNumber;
+  if (interval) user.interval = interval;
+  if (file) {
+    const fileUrl = getDataUri(file);
+    if (!fileUrl.content) return next(createHttpError(400, "Error While Making a Url of user Image"));
+    const myCloud = await uploadOnCloudinary(fileUrl.content!, "user");
+    if (!myCloud?.public_id || !myCloud?.secure_url)
+      return next(createHttpError(400, "Error While Uploading User Image on Cloudinary"));
+    user.image = { url: myCloud.secure_url, public_id: myCloud.public_id };
+  }
+  const updatedUser = await user.save();
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Profile Updated Successfully", data: updatedUser });
+});
 //---------
 // logout
 //---------
@@ -361,6 +392,7 @@ const getNewAccessToken = TryCatch(async (req, res, next) => {
 
 export {
   forgetPassword,
+  updateMyProfile,
   login,
   logout,
   register,

@@ -72,7 +72,7 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
       name: `${user?.firstName} ${user?.lastName}`,
       phone: user?.phoneNumber,
       email: user.email,
-      metadata: { userId },
+      metadata: { userId, plan },
     });
     if (!customer) return next(createHttpError(500, "Error Occurred While Creating Customer"));
   }
@@ -102,8 +102,6 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
 // -------------------------------------------------------------------------
 
 export const addNewSubscription = TryCatch(async (req, res, next) => {
-  console.log("Webhook received from Stripe");
-
   const signature = req.headers["stripe-signature"];
   const payload = req.body;
   const payloadString = JSON.stringify(payload);
@@ -116,7 +114,6 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
   let event;
   try {
     event = await myStripe.webhooks.constructEvent(payloadString, header, stripeWebhookSecret);
-    console.log("Stripe event: ", event);
   } catch (err: any) {
     return next(createHttpError(400, `Webhook Error: ${err.message}`));
   }
@@ -130,6 +127,7 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
 
   const subscriptionData = {
     user: customer.metadata.userId,
+    plan: customer.metadata?.plan,
     stripeCustomerId: customer.id,
     stripeSubscriptionId: subscription.id,
     paymentMethod: [subscription.default_payment_method],
@@ -140,16 +138,17 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
     billingAddress: subscription.billing_details
       ? new Map(Object.entries(subscription.billing_details))
       : new Map(),
+    isTrial: trialEndDate && trialEndDate > new Date() ? true : false,
     trialStartDate: trialStartDate,
     trialEndDate: trialEndDate,
   };
 
+  console.log("webhooks", subscriptionData);
+
   switch (event.type) {
     case "customer.subscription.created":
       const newSubscription = await Subscriber.create(subscriptionData);
-      if (!newSubscription) {
-        return next(createHttpError(500, "Error Occurred While Creating Subscription"));
-      }
+      if (!newSubscription) return next(createHttpError(500, "Error Occurred While Creating Subscription"));
       const updateUser = await User.findByIdAndUpdate(customer.metadata.userId, {
         subscriptionId: newSubscription._id,
       });
@@ -194,8 +193,17 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
       return res.status(200).json({ success: true, message: "Subscription Resumed" });
 
     case "customer.subscription.trial_will_end":
-      console.log("your trial period end after 3 days");
-    // TODO: Handle trial will end
+      const endTrialPeriod = await Subscriber.updateOne(
+        { stripeSubscriptionId: subscription.id },
+        {
+          subscriptionStatus: statusMapping[subscription.status],
+          trialStartDate: null,
+          trialEndDate: null,
+          isTrial: false,
+        }
+      );
+      if (!endTrialPeriod) return next(createHttpError(500, "Error Occurred While Resuming Subscription"));
+      return res.status(200).json({ success: true, message: "Subscription Resumed" });
     default:
       return res.status(400).json({ success: false, message: "Unhandled Event Type" });
   }

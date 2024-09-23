@@ -10,17 +10,17 @@ export const __fileName = path.dirname(__dirName);
 export const truckStatusEnum = ["not-connected", "connected"];
 
 export const accessTokenOptions: CookieOptions = {
-    httpOnly: true,
-    sameSite: config.getEnv("NODE_ENV") !== "development" ? "none" : "lax",
-    secure: config.getEnv("NODE_ENV") !== "development",
-    maxAge: parseInt(config.getEnv("ACCESS_TOKEN_MAX_AGE")),
+  httpOnly: true,
+  sameSite: config.getEnv("NODE_ENV") !== "development" ? "none" : "lax",
+  secure: config.getEnv("NODE_ENV") !== "development",
+  maxAge: parseInt(config.getEnv("ACCESS_TOKEN_MAX_AGE")),
 };
 
 export const refreshTokenOptions: CookieOptions = {
-    httpOnly: true,
-    sameSite: config.getEnv("NODE_ENV") !== "development" ? "none" : "lax",
-    secure: config.getEnv("NODE_ENV") !== "development",
-    maxAge: Number(config.getEnv("REFRESH_TOKEN_MAX_AGE")),
+  httpOnly: true,
+  sameSite: config.getEnv("NODE_ENV") !== "development" ? "none" : "lax",
+  secure: config.getEnv("NODE_ENV") !== "development",
+  maxAge: Number(config.getEnv("REFRESH_TOKEN_MAX_AGE")),
 };
 
 // stripe constants
@@ -35,4 +35,4 @@ export const stripeReturnUrl = config.getEnv("SUBSCRIPTION_RETURN_URL");
 
 export const stripeMonthlyPrice = "price_1PfL4vFThvHN5fHL9uAV1TWw";
 export const stripeYearlyPrice = "price_1PfL79FThvHN5fHLmo9XrXQa";
-export const stripeLifetimePrice = "price_1PfL8WFThvHN5fHLnvScngMM";
+export const stripeLifetimePrice = "price_1Q2BM2FThvHN5fHLhXqMK2Ju";

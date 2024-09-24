@@ -36,12 +36,14 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
     return next(createHttpError(400, "Please select a subscription plan"));
 
   let priceId;
+  let subscriptionMode: any = "subscription";
   if (plan === "monthly") {
     priceId = stripeMonthlyPrice;
   } else if (plan === "yearly") {
     priceId = stripeYearlyPrice;
   } else if (plan === "lifetime") {
     priceId = stripeLifetimePrice;
+    subscriptionMode = "payment";
   } else {
     return next(createHttpError(400, "Invalid subscription plan selected"));
   }
@@ -82,7 +84,7 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
     success_url: stripeSuccessUrl,
     cancel_url: stripeCancelUrl,
     payment_method_types: ["card"],
-    mode: "subscription",
+    mode: subscriptionMode,
     billing_address_collection: "auto",
     line_items: [
       {

@@ -89,7 +89,7 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
         quantity: 1,
       },
     ],
-    metadata: { userId },
+    metadata: { userId, plan },
     customer: customer.id,
     subscription_data: {
       trial_period_days: Number(subscriptionTrialPeriodDays) || 7,

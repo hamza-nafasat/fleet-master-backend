@@ -35,4 +35,4 @@ export const stripeReturnUrl = config.getEnv("SUBSCRIPTION_RETURN_URL");
 
 export const stripeMonthlyPrice = "price_1PfL4vFThvHN5fHL9uAV1TWw";
 export const stripeYearlyPrice = "price_1PfL79FThvHN5fHLmo9XrXQa";
-export const stripeLifetimePrice = "price_1Q2BM2FThvHN5fHLhXqMK2Ju";
+export const stripeLifetimePrice = "price_1Q2SqJFThvHN5fHLPs9xzrmM";

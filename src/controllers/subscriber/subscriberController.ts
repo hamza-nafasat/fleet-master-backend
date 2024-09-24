@@ -31,8 +31,9 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
   const { _id: userId } = req.user;
   const user = await User.findById(userId);
   if (!user) return next(createHttpError(404, "User Not Found"));
-  const { plan } = req.body; // Get the plan from the request body
-  if (!plan) return next(createHttpError(400, "Please select a subscription plan"));
+  const { plan } = req.body;
+  if (!plan || !["monthly", "yearly", "lifetime"].includes(plan))
+    return next(createHttpError(400, "Please select a subscription plan"));
 
   let priceId;
   if (plan === "monthly") {

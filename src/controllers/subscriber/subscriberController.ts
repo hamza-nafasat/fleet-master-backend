@@ -122,14 +122,23 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
 
   const trialStartDate = subscription.trial_start ? new Date(subscription.trial_start * 1000) : null;
   const trialEndDate = trialStartDate ? new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+  const priceId = subscription.items?.data[0]?.price?.id;
+  const plan =
+    priceId === stripeMonthlyPrice
+      ? "monthly"
+      : priceId === stripeYearlyPrice
+      ? "yearly"
+      : priceId === stripeLifetimePrice
+      ? "lifetime"
+      : null;
 
   const subscriptionData = {
     user: customer.metadata.userId,
-    plan: customer.metadata?.plan,
+    plan,
     stripeCustomerId: customer.id,
     stripeSubscriptionId: subscription.id,
     paymentMethod: [subscription.default_payment_method],
-    priceId: subscription.items?.data[0]?.price?.id,
+    priceId: priceId,
     subscriptionStatus: subscription.status,
     subscriptionStartDate: new Date(subscription.current_period_start * 1000),
     subscriptionEndDate: new Date(subscription.current_period_end * 1000),
@@ -140,8 +149,6 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
     trialStartDate,
     trialEndDate,
   };
-
-  console.log("webhooks", event);
 
   // Event handlers for subscriptions
   const eventHandlers: any = {

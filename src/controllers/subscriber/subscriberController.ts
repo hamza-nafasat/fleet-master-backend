@@ -255,12 +255,12 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
     billingAddress: subscription.billing_details
       ? new Map(Object.entries(subscription.billing_details))
       : new Map(),
-    isTrial: trialEndDate && trialEndDate > new Date() ? true : false,
+    isTrial: subscriptionStatus === "trial" ? true : false,
     trialStartDate,
     trialEndDate,
   };
 
-  console.log("webhooks", subscriptionData);
+  console.log("webhooks", event);
 
   // Event handlers for subscriptions
   const eventHandlers: any = {

@@ -62,11 +62,13 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
       status: "active",
       limit: 1,
     });
+    console.log("subscription", subscription);
     if (subscription?.data?.length > 0) {
       const stripeSession = await myStripe.billingPortal.sessions.create({
         customer: customer?.id,
         return_url: stripeReturnUrl,
       });
+      console.log("stripeSession", stripeSession);
       return res.status(200).json({ success: true, redirect_url: stripeSession.url });
     }
   } else {
@@ -104,6 +106,114 @@ export const createStripeSession = TryCatch(async (req, res, next) => {
 // http://localhost:8000/api/v1/subscription/subscribe  Add New Subscription
 // -------------------------------------------------------------------------
 
+// export const addNewSubscription = TryCatch(async (req, res, next) => {
+//   const signature = req.headers["stripe-signature"];
+//   const payload = req.body;
+//   const payloadString = JSON.stringify(payload);
+
+//   const header = myStripe.webhooks.generateTestHeaderString({
+//     payload: payloadString,
+//     secret: stripeWebhookSecret,
+//   });
+//   if (!signature) return next(createHttpError(400, "Signature Not Found"));
+//   let event;
+//   try {
+//     event = await myStripe.webhooks.constructEvent(payloadString, header, stripeWebhookSecret);
+//   } catch (err: any) {
+//     return next(createHttpError(400, `Webhook Error: ${err.message}`));
+//   }
+
+//   const subscription: any = event.data.object;
+//   const customer: any = await myStripe.customers.retrieve(subscription.customer);
+
+//   if (!customer) return next(createHttpError(404, "Customer Not Found"));
+//   const trialStartDate = subscription.trial_start ? new Date(subscription.trial_start * 1000) : null;
+//   const trialEndDate = trialStartDate ? new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+
+//   const subscriptionData = {
+//     user: customer.metadata.userId,
+//     plan: customer.metadata?.plan,
+//     stripeCustomerId: customer.id,
+//     stripeSubscriptionId: subscription.id,
+//     paymentMethod: [subscription.default_payment_method],
+//     priceId: subscription.items?.data[0]?.price?.id,
+//     subscriptionStatus: statusMapping[subscription.status] || "pending",
+//     subscriptionStartDate: new Date(subscription.current_period_start * 1000),
+//     subscriptionEndDate: new Date(subscription.current_period_end * 1000),
+//     billingAddress: subscription.billing_details
+//       ? new Map(Object.entries(subscription.billing_details))
+//       : new Map(),
+//     isTrial: trialEndDate && trialEndDate > new Date() ? true : false,
+//     trialStartDate: trialStartDate,
+//     trialEndDate: trialEndDate,
+//   };
+
+//   console.log("webhooks", subscriptionData);
+
+//   switch (event.type) {
+//     case "customer.subscription.created":
+//       const newSubscription = await Subscriber.create(subscriptionData);
+//       if (!newSubscription) return next(createHttpError(500, "Error Occurred While Creating Subscription"));
+//       const updateUser = await User.findByIdAndUpdate(customer.metadata.userId, {
+//         subscriptionId: newSubscription._id,
+//       });
+//       if (!updateUser) return next(createHttpError(500, "Error Occurred While Updating User"));
+//       return res.status(201).json({ success: true, message: "Subscription Created" });
+
+//     case "customer.subscription.updated":
+//       const updateSubscription = await Subscriber.updateOne(
+//         { stripeSubscriptionId: subscription.id },
+//         { subscriptionStatus: statusMapping[subscription.status] }
+//       );
+//       if (!updateSubscription)
+//         return next(createHttpError(500, "Error Occurred While Updating Subscription"));
+//       return res.status(200).json({ success: true, message: "Subscription Updated" });
+
+//     case "customer.subscription.deleted":
+//       const deleteSubscription = await Subscriber.updateOne(
+//         { stripeSubscriptionId: subscription.id },
+//         { subscriptionStatus: statusMapping[subscription.status] }
+//       );
+//       if (!deleteSubscription)
+//         return next(createHttpError(500, "Error Occurred While Deleting Subscription"));
+//       return res.status(200).json({ success: true, message: "Subscription Deleted" });
+
+//     case "customer.subscription.paused":
+//       const pauseSubscription = await Subscriber.updateOne(
+//         { stripeSubscriptionId: subscription.id },
+//         { subscriptionStatus: statusMapping[subscription.status] }
+//       );
+//       if (!pauseSubscription) {
+//         return next(createHttpError(500, "Error Occurred While Pausing Subscription"));
+//       }
+//       return res.status(200).json({ success: true, message: "Subscription Paused" });
+
+//     case "customer.subscription.resumed":
+//       const resumeSubscription = await Subscriber.updateOne(
+//         { stripeSubscriptionId: subscription.id },
+//         { subscriptionStatus: statusMapping[subscription.status] }
+//       );
+//       if (!resumeSubscription)
+//         return next(createHttpError(500, "Error Occurred While Resuming Subscription"));
+//       return res.status(200).json({ success: true, message: "Subscription Resumed" });
+
+//     case "customer.subscription.trial_will_end":
+//       const endTrialPeriod = await Subscriber.updateOne(
+//         { stripeSubscriptionId: subscription.id },
+//         {
+//           subscriptionStatus: statusMapping[subscription.status],
+//           trialStartDate: null,
+//           trialEndDate: null,
+//           isTrial: false,
+//         }
+//       );
+//       if (!endTrialPeriod) return next(createHttpError(500, "Error Occurred While Resuming Subscription"));
+//       return res.status(200).json({ success: true, message: "Subscription Resumed" });
+//     default:
+//       return res.status(400).json({ success: false, message: "Unhandled Event Type" });
+//   }
+// });
+
 export const addNewSubscription = TryCatch(async (req, res, next) => {
   const signature = req.headers["stripe-signature"];
   const payload = req.body;
@@ -113,8 +223,10 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
     payload: payloadString,
     secret: stripeWebhookSecret,
   });
+
   if (!signature) return next(createHttpError(400, "Signature Not Found"));
-  let event;
+
+  let event: any;
   try {
     event = await myStripe.webhooks.constructEvent(payloadString, header, stripeWebhookSecret);
   } catch (err: any) {
@@ -125,8 +237,10 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
   const customer: any = await myStripe.customers.retrieve(subscription.customer);
 
   if (!customer) return next(createHttpError(404, "Customer Not Found"));
+
   const trialStartDate = subscription.trial_start ? new Date(subscription.trial_start * 1000) : null;
   const trialEndDate = trialStartDate ? new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+  const subscriptionStatus = statusMapping[subscription.status] || "pending";
 
   const subscriptionData = {
     user: customer.metadata.userId,
@@ -135,81 +249,73 @@ export const addNewSubscription = TryCatch(async (req, res, next) => {
     stripeSubscriptionId: subscription.id,
     paymentMethod: [subscription.default_payment_method],
     priceId: subscription.items?.data[0]?.price?.id,
-    subscriptionStatus: statusMapping[subscription.status] || "pending",
+    subscriptionStatus,
     subscriptionStartDate: new Date(subscription.current_period_start * 1000),
     subscriptionEndDate: new Date(subscription.current_period_end * 1000),
     billingAddress: subscription.billing_details
       ? new Map(Object.entries(subscription.billing_details))
       : new Map(),
     isTrial: trialEndDate && trialEndDate > new Date() ? true : false,
-    trialStartDate: trialStartDate,
-    trialEndDate: trialEndDate,
+    trialStartDate,
+    trialEndDate,
   };
 
   console.log("webhooks", subscriptionData);
 
-  switch (event.type) {
-    case "customer.subscription.created":
+  // Event handlers for subscriptions
+  const eventHandlers: any = {
+    "customer.subscription.created": async () => {
       const newSubscription = await Subscriber.create(subscriptionData);
-      if (!newSubscription) return next(createHttpError(500, "Error Occurred While Creating Subscription"));
-      const updateUser = await User.findByIdAndUpdate(customer.metadata.userId, {
+      if (!newSubscription) throw createHttpError(500, "Error Creating Subscription");
+
+      const updatedUser = await User.findByIdAndUpdate(customer.metadata.userId, {
         subscriptionId: newSubscription._id,
       });
-      if (!updateUser) return next(createHttpError(500, "Error Occurred While Updating User"));
-      return res.status(201).json({ success: true, message: "Subscription Created" });
+      if (!updatedUser) throw createHttpError(500, "Error Updating User");
 
-    case "customer.subscription.updated":
-      const updateSubscription = await Subscriber.updateOne(
-        { stripeSubscriptionId: subscription.id },
-        { subscriptionStatus: statusMapping[subscription.status] }
-      );
-      if (!updateSubscription)
-        return next(createHttpError(500, "Error Occurred While Updating Subscription"));
-      return res.status(200).json({ success: true, message: "Subscription Updated" });
-
-    case "customer.subscription.deleted":
-      const deleteSubscription = await Subscriber.updateOne(
-        { stripeSubscriptionId: subscription.id },
-        { subscriptionStatus: statusMapping[subscription.status] }
-      );
-      if (!deleteSubscription)
-        return next(createHttpError(500, "Error Occurred While Deleting Subscription"));
-      return res.status(200).json({ success: true, message: "Subscription Deleted" });
-
-    case "customer.subscription.paused":
-      const pauseSubscription = await Subscriber.updateOne(
-        { stripeSubscriptionId: subscription.id },
-        { subscriptionStatus: statusMapping[subscription.status] }
-      );
-      if (!pauseSubscription) {
-        return next(createHttpError(500, "Error Occurred While Pausing Subscription"));
-      }
-      return res.status(200).json({ success: true, message: "Subscription Paused" });
-
-    case "customer.subscription.resumed":
-      const resumeSubscription = await Subscriber.updateOne(
-        { stripeSubscriptionId: subscription.id },
-        { subscriptionStatus: statusMapping[subscription.status] }
-      );
-      if (!resumeSubscription)
-        return next(createHttpError(500, "Error Occurred While Resuming Subscription"));
-      return res.status(200).json({ success: true, message: "Subscription Resumed" });
-
-    case "customer.subscription.trial_will_end":
-      const endTrialPeriod = await Subscriber.updateOne(
+      return { message: "Subscription Created" };
+    },
+    "customer.subscription.updated": async () => {
+      await Subscriber.updateOne({ stripeSubscriptionId: subscription.id }, { subscriptionStatus });
+      return { message: "Subscription Updated" };
+    },
+    "customer.subscription.deleted": async () => {
+      await Subscriber.updateOne({ stripeSubscriptionId: subscription.id }, { subscriptionStatus });
+      return { message: "Subscription Deleted" };
+    },
+    "customer.subscription.paused": async () => {
+      await Subscriber.updateOne({ stripeSubscriptionId: subscription.id }, { subscriptionStatus });
+      return { message: "Subscription Paused" };
+    },
+    "customer.subscription.resumed": async () => {
+      await Subscriber.updateOne({ stripeSubscriptionId: subscription.id }, { subscriptionStatus });
+      return { message: "Subscription Resumed" };
+    },
+    "customer.subscription.trial_will_end": async () => {
+      await Subscriber.updateOne(
         { stripeSubscriptionId: subscription.id },
         {
-          subscriptionStatus: statusMapping[subscription.status],
+          subscriptionStatus,
           trialStartDate: null,
           trialEndDate: null,
           isTrial: false,
         }
       );
-      if (!endTrialPeriod) return next(createHttpError(500, "Error Occurred While Resuming Subscription"));
-      return res.status(200).json({ success: true, message: "Subscription Resumed" });
-    default:
-      return res.status(400).json({ success: false, message: "Unhandled Event Type" });
+      return { message: "Trial Ended, Subscription Resumed" };
+    },
+  };
+
+  const handler = eventHandlers[event.type];
+  if (handler) {
+    try {
+      const result = await handler();
+      return res.status(200).json({ success: true, ...result });
+    } catch (err) {
+      return next(err);
+    }
   }
+
+  return res.status(400).json({ success: false, message: "Unhandled Event Type" });
 });
 
 // http://localhost:8000/api/v1/subscription/subscribers

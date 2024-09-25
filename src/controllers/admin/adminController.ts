@@ -11,6 +11,8 @@ import { Employ } from "../../models/employModel/employ.model.js";
 import { Report } from "../../models/reportModel/report.modal.js";
 import { Device } from "../../models/deviceModel/device.model.js";
 import Notification from "../../models/notificationModel/notification.model.js";
+import sensorData from "../../sequelizeSchemas/schema.js";
+import { Op } from "sequelize";
 
 // update user profile
 //----------------------
@@ -85,9 +87,79 @@ const deleteUser = TryCatch(async (req, res, next) => {
 const getSingleTruckReport = TryCatch(async (req, res, next) => {
   const { timeTo, timeFrom, plateNumber } = req.query;
 
-  // if (!timeTo || !timeFrom || !plateNumber) {
-  //   return next(createHttpError(400, "Please provide all fields"));
-  // }
+  // Variables for truck details
+  let driverName: string | undefined;
+  let gpsDevice: string | undefined;
+  let truckStatus: string | undefined;
+  let truck: any;
+  let reportData: any = {};
+
+  // Handle start and end date range
+  if (timeFrom) reportData.startDate = new Date(timeFrom);
+  if (timeTo) reportData.endDate = new Date(timeTo);
+
+  if (plateNumber) {
+    // Find the truck by plate number
+    truck = await Truck.findOne({ plateNumber }).populate("assignedTo").populate("devices");
+    if (truck) {
+      reportData.truck = String(truck._id);
+    } else {
+      return next(createHttpError(404, "Truck not found. Please provide a correct plate number"));
+    }
+
+    driverName = `${truck?.assignedTo?.firstName} ${truck?.assignedTo?.lastName}`;
+    gpsDevice = truck?.devices?.find((device: any) => device?.type === "gps")?._id;
+    truckStatus = truck?.status;
+  }
+  // Fetch reports within the specified date range for the given truck
+  // Build the query for reports, conditionally applying filters
+  let reportQuery: any = {
+    where: {
+      truckId: reportData.truck,
+    },
+    order: [["createdAt", "DESC"]],
+  };
+
+  // Add date range filter if timeFrom or timeTo is provided
+  if (reportData.startDate || reportData.endDate) {
+    reportQuery.where.createdAt = {
+      ...(reportData.startDate ? { [Op.gte]: reportData.startDate } : {}),
+      ...(reportData.endDate ? { [Op.lte]: reportData.endDate } : {}),
+    };
+  }
+
+  // Fetch reports from the database, with or without truckId and date range filters
+  const reports = await sensorData.findAll(reportQuery);
+
+  // Modify the reports to include additional details
+  const modifiedReports = await Promise.all(
+    reports.map(async (report: any) => {
+      return {
+        ...report._doc,
+        _id: report.id,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+        plateNumber: plateNumber,
+        driverName: driverName,
+        truckStatus: truckStatus,
+        deviceId: gpsDevice,
+        latitude: report.gps_latitude,
+        longitude: report.gps_longitude,
+        speed: report.speed,
+        truck: truck,
+      };
+    })
+  );
+  console.log("modifiedReports", modifiedReports);
+
+  // Send the modified reports as a response
+  res.status(200).json({ success: true, data: modifiedReports });
+});
+
+// get single truck reports
+//-------------------------
+const geSingleTruckReport = TryCatch(async (req, res, next) => {
+  const { timeTo, timeFrom, plateNumber } = req.query;
 
   // Create date objects for the query range
 
@@ -115,9 +187,12 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
     truckStatus = truck?.status;
   }
   // Fetch reports within the specified date range for the given truck
-  const reports = await Report.find({ ...reportData }).populate({
-    path: "truck",
-    populate: [{ path: "assignedTo" }, { path: "devices" }],
+  const reports = await sensorData.findAll({
+    where: {
+      ...reportData,
+    },
+    order: [["createdAt", "DESC"]],
+    limit: 1,
   });
 
   // Modify the reports to include additional details

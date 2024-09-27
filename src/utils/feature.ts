@@ -14,4 +14,10 @@ const getNewAlertsForUserAndSaveInState = async (userId: any) => {
   clientNotificationsSelection.set(String(userId), modifiedAlerts);
 };
 
-export { getNewAlertsForUserAndSaveInState };
+const getMonthName = (monthNumber: number) => {
+  const date = new Date();
+  date.setMonth(monthNumber - 1);
+  return new Intl.DateTimeFormat("en-US", { month: "short" }).format(date);
+};
+
+export { getNewAlertsForUserAndSaveInState, getMonthName };

@@ -13,6 +13,7 @@ import { Device } from "../../models/deviceModel/device.model.js";
 import Notification from "../../models/notificationModel/notification.model.js";
 import sensorData from "../../sequelizeSchemas/schema.js";
 import { Op } from "sequelize";
+import { getMonthName } from "../../utils/feature.js";
 
 // update user profile
 //----------------------
@@ -156,66 +157,18 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
   res.status(200).json({ success: true, data: modifiedReports });
 });
 
-// get single truck reports
-//-------------------------
-const geSingleTruckReport = TryCatch(async (req, res, next) => {
-  const { timeTo, timeFrom, plateNumber } = req.query;
-
-  // Create date objects for the query range
-
-  let driverName: any;
-  let gpsDevice: any;
-  let truckStatus: any;
-  const reportData: any = {};
-  if (timeFrom) {
-    const startDate = new Date(timeFrom);
-    reportData["createdAt"] = { $gte: startDate };
-  }
-  if (timeTo) {
-    const endDate = new Date(timeTo);
-    reportData["createdAt"] = { $lte: endDate };
-  }
-  if (plateNumber) {
-    // Find the truck by plate number
-    const truck: any = await Truck.findOne({ plateNumber }).populate("assignedTo").populate("devices");
-    if (!truck) {
-      return next(createHttpError(404, "Truck not found. Please provide a correct plate number"));
-    }
-
-    driverName = `${truck?.assignedTo?.firstName} ${truck?.assignedTo?.lastName}`;
-    gpsDevice = truck?.devices?.find((device: any) => device?.type === "gps")?._id;
-    truckStatus = truck?.status;
-  }
-  // Fetch reports within the specified date range for the given truck
-  const reports = await sensorData.findAll({
-    where: {
-      ...reportData,
-    },
-    order: [["createdAt", "DESC"]],
-    limit: 1,
-  });
-
-  // Modify the reports to include additional details
-  const modifiedReports = await Promise.all(
-    reports.map(async (report: any) => {
-      return {
-        ...report._doc,
-        createdAt: report.createdAt,
-        updatedAt: report.updatedAt,
-        plateNumber: plateNumber,
-        driverName: driverName,
-        truckStatus: truckStatus,
-        deviceId: gpsDevice,
-      };
-    })
-  );
-
-  // Send the modified reports as a response
-  res.status(200).json({ success: true, data: modifiedReports });
-});
-
-// get admin dashboard details
 const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
+  // const { from } = req.query;
+  // if (from && ["last-year", "last-month", "last-week"].includes(String(from))) {
+  //   return res.status(200).json({ success: true, data: {} });
+  // }
+
+  const today = new Date();
+  const lastYear = new Date();
+  const currentMonth = today.getMonth();
+  lastYear.setFullYear(today.getFullYear() - 1);
+
+  // Counting various entities
   const totalConnectedTrucksPromise = Truck.countDocuments({ status: "connected" });
   const totalNotConnectedTrucksPromise = Truck.countDocuments({ status: "not-connected" });
   const totalTrucksPromise = Truck.countDocuments();
@@ -224,6 +177,20 @@ const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
   const totalDevicesPromise = Device.countDocuments();
   const totalAlarmsPromise = Notification.countDocuments({ isRead: false });
 
+  // Aggregating truck and driver data by month
+  const truckChartDataPromise = Truck.aggregate([
+    { $match: { createdAt: { $gte: lastYear, $lte: today } } },
+    { $group: { _id: { $month: "$createdAt" }, count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const driverChartDataPromise = Driver.aggregate([
+    { $match: { createdAt: { $gte: lastYear, $lte: today } } },
+    { $group: { _id: { $month: "$createdAt" }, count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // Await all promises
   const [
     totalAssignedTrucks,
     totalUnAssignedTrucks,
@@ -232,6 +199,8 @@ const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
     totalEmployees,
     totalDevices,
     totalAlarms,
+    truckChartData,
+    driverChartData,
   ] = await Promise.all([
     totalConnectedTrucksPromise,
     totalNotConnectedTrucksPromise,
@@ -240,8 +209,44 @@ const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
     totalEmployeesPromise,
     totalDevicesPromise,
     totalAlarmsPromise,
+    truckChartDataPromise,
+    driverChartDataPromise,
   ]);
 
+  // Initialize chart data structure
+  const chartData: any = {
+    truck: {
+      label: [],
+      data: [],
+    },
+    driver: {
+      label: [],
+      data: [],
+    },
+  };
+
+  // Populate truck chart data
+  for (let i = 0; i < 12; i++) {
+    const monthIndex = (currentMonth - i + 12) % 12;
+    const monthName = getMonthName(monthIndex + 1);
+    chartData.truck.label.unshift(monthName);
+    const foundTruck = truckChartData.find((item) => item._id === monthIndex + 1);
+    chartData.truck.data.unshift(foundTruck ? foundTruck.count : 0);
+  }
+
+  // Populate driver chart data
+  for (let i = 0; i < 12; i++) {
+    const monthIndex = (currentMonth - i + 12) % 12;
+    const monthName = getMonthName(monthIndex + 1);
+    chartData.driver.label.unshift(monthName);
+    const foundDriver = driverChartData.find((item) => item._id === monthIndex + 1);
+    chartData.driver.data.unshift(foundDriver ? foundDriver.count : 0);
+  }
+
+  // Debugging log for chart data
+  console.log("chartData", chartData);
+
+  // Return response with all details
   return res.status(200).json({
     success: true,
     data: {
@@ -252,6 +257,7 @@ const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
       totalEmployees,
       totalDevices,
       totalAlarms,
+      chartData,
     },
   });
 });

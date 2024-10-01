@@ -50,13 +50,15 @@ io.on("connection", (socket: Socket) => {
   console.log("liveSockets", liveSockets);
 
   // get and add all trucks ids which are in geofences and add them to watchPolygonTrucksData
-  GeoFence.find({ startDate: { $lt: new Date() }, endDate: { $gt: new Date() } }).then((geoFences) => {
-    const truckIds = geoFences.map((geoFence) => geoFence.trucks.map((truck) => truck.toString()));
-    const flattenedTruckIds = truckIds.flat();
-    const uniqueTruckIdsSet = new Set(flattenedTruckIds);
-    uniqueTruckIdsSet.forEach((id) => watchPolygonTrucksData.add(String(id)));
-    console.log("geofence ids", watchPolygonTrucksData);
-  });
+  GeoFence.find({ status: "active", startDate: { $lt: new Date() }, endDate: { $gt: new Date() } }).then(
+    (geoFences) => {
+      const truckIds = geoFences.map((geoFence) => geoFence.trucks.map((truck) => truck.toString()));
+      const flattenedTruckIds = truckIds.flat();
+      const uniqueTruckIdsSet = new Set(flattenedTruckIds);
+      uniqueTruckIdsSet.forEach((id) => watchPolygonTrucksData.add(String(id)));
+      console.log("geofence ids", watchPolygonTrucksData);
+    }
+  );
 
   // get all alerts user want in notification
   Alert.find({ ownerId: userRealId, status: "enable" }).then((alert) => {
@@ -70,11 +72,6 @@ io.on("connection", (socket: Socket) => {
     });
     clientNotificationsSelection.set(userRealId, modifiedAlerts);
     console.log("clientNotificationsSelection", clientNotificationsSelection);
-  });
-
-  socket.on(socketEvent.WANT_TRACKING_DATA, (truckIds: string[]) => {
-    truckIds.forEach((truckId) => watchPolygonTrucksData.add(String(truckId)));
-    console.log("truck ids for send data", watchPolygonTrucksData);
   });
 
   socket.on("disconnect", () => {

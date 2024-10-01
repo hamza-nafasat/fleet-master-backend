@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import { Device } from "../../models/deviceModel/device.model.js";
-import { TryCatch } from "../../utils/tryCatch.js";
-import { DeviceTypes } from "../../types/device.types.js";
 import createHttpError from "http-errors";
-import Sensor from "../../models/sensorModel/sensor.model.js";
-import { config } from "../../config/config.js";
-import { doneAllFuncOnOneData } from "../../utils/mongoWatcher.js";
 import { connectCustomMySql } from "../../database/connection.js";
+import { Device } from "../../models/deviceModel/device.model.js";
+import Sensor from "../../models/sensorModel/sensor.model.js";
+import { DeviceTypes } from "../../types/device.types.js";
+import { doneAllFuncOnOneData } from "../../utils/mongoWatcher.js";
+import { TryCatch } from "../../utils/tryCatch.js";
+import { watchPolygonTrucksData } from "../../constants/socketState.js";
+import { config } from "../../config/config.js";
 
 // create device
 // -------------
@@ -195,7 +196,6 @@ const addSensorData = TryCatch(async (req: Request, res: Response, next: NextFun
 const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
   const ownerId = req.user?._id?.toString();
   if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
-
   const { dbConnection, SensorData } = await connectCustomMySql(String(ownerId));
 
   // Fetch all devices for this user
@@ -223,40 +223,42 @@ const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, ne
   });
 
   const doneAllFuncOnOneDataPromises = sensorsOfThisUsersDevices.map(async (device: any) => {
-    if (device && device?.uniqueId) {
-      await doneAllFuncOnOneData(device);
-    }
+    if (device && device?.uniqueId) await doneAllFuncOnOneData(device);
   });
-
   // Wait for all async operations to complete
   await Promise.all(doneAllFuncOnOneDataPromises);
 
   // Map the sensor data back to the devices using uniqueId
-  const obj = devicesOfThisUser.map((device: any) => {
-    let latestSensor = sensorsOfThisUsersDevices.find((sensor: any) => sensor.uniqueId === device.uniqueId);
+  const dataForReturn: any = {};
+  const obj = devicesOfThisUser.forEach((device: any) => {
+    let latestSensor = sensorsOfThisUsersDevices.find((sensor: any) => {
+      return sensor?.uniqueId === device?.uniqueId && watchPolygonTrucksData.has(sensor?.truckId);
+    });
     // check if this is created at before 2 min then return null
-    // if (
-    //   latestSensor?.createdAt <
-    //   new Date(new Date().getTime() - Number(config.getEnv("DAMAGE_SENSOR_TIME")) || 300000)
-    // )
-    // latestSensor = null;
-    return {
-      [device.uniqueId]: latestSensor || null,
-    };
+    if (
+      latestSensor?.createdAt <
+      new Date(new Date().getTime() - Number(config.getEnv("DAMAGE_SENSOR_TIME")) || 300000)
+    ) {
+      latestSensor.isOffline = true;
+      dataForReturn[device.uniqueId] = latestSensor;
+      latestSensor = null;
+    } else if (latestSensor) {
+      dataForReturn[device.uniqueId] = latestSensor;
+    }
   });
 
   // Return the object with the device unique IDs and latest sensor data
-  res.status(200).json({ success: true, data: obj });
+  res.status(200).json({ success: true, data: dataForReturn });
 });
 
 export {
+  addSensorData,
   createDevice,
-  getSingleDevice,
   deleteDevice,
   getAllDevices,
-  updateDevice,
+  getSingleDevice,
   getSingleDeviceLatestData,
-  addSensorData,
   getUserLatestDeviceData,
   getUserLatestDevicesData,
+  updateDevice,
 };

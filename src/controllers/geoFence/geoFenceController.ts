@@ -54,6 +54,20 @@ const updateSingleGeoFences = TryCatch(async (req: Request, res, next) => {
     { new: true }
   );
   if (!geoFence) return next(createHttpError(404, "GeoFence Not Found"));
+
+  if (
+    geoFence?.status === "active" &&
+    new Date(geoFence?.startDate) < new Date() &&
+    new Date(geoFence?.endDate) > new Date()
+  ) {
+    console.log("before", watchPolygonTrucksData);
+    geoFence?.trucks.forEach((truckId: any) => watchPolygonTrucksData.add(String(truckId)));
+    console.log("after", watchPolygonTrucksData);
+  } else {
+    console.log("before", watchPolygonTrucksData);
+    geoFence?.trucks.forEach((truckId: any) => watchPolygonTrucksData.delete(String(truckId)));
+    console.log("after", watchPolygonTrucksData);
+  }
   res.status(200).json({ success: true, message: "GeoFence Updated Successfully" });
 });
 
@@ -64,7 +78,6 @@ const deleteSingleGeoFence = TryCatch(async (req: Request, res, next) => {
   const geoFence = await GeoFence.findOneAndDelete({ _id: geoFenceId, ownerId });
   if (!geoFence) return next(createHttpError(404, "GeoFence Not Found"));
 
-  // add trucks in watchPolygonTrucksData
   console.log("before", watchPolygonTrucksData);
   geoFence?.trucks.forEach((truckId: any) => watchPolygonTrucksData.delete(String(truckId)));
   console.log("after", watchPolygonTrucksData);
@@ -93,10 +106,15 @@ const addTruckAndArea = TryCatch(async (req: Request, res, next) => {
   geoFence.area = area;
   await geoFence.save();
 
-  // add trucks in watchPolygonTrucksData
-  console.log("before", watchPolygonTrucksData);
-  trucks.forEach((truckId: any) => watchPolygonTrucksData.add(String(truckId)));
-  console.log("after", watchPolygonTrucksData);
+  if (
+    geoFence?.status === "active" &&
+    new Date(geoFence?.startDate) < new Date() &&
+    new Date(geoFence?.endDate) > new Date()
+  ) {
+    console.log("before", watchPolygonTrucksData);
+    trucks.forEach((truckId: any) => watchPolygonTrucksData.add(String(truckId)));
+    console.log("after", watchPolygonTrucksData);
+  }
 
   res.status(200).json({ success: true, message: "Trucks Updated Successfully" });
 });

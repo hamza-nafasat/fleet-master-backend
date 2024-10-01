@@ -11,9 +11,9 @@ import { Employ } from "../../models/employModel/employ.model.js";
 import { Report } from "../../models/reportModel/report.modal.js";
 import { Device } from "../../models/deviceModel/device.model.js";
 import Notification from "../../models/notificationModel/notification.model.js";
-import sensorData from "../../sequelizeSchemas/schema.js";
 import { Op } from "sequelize";
 import { getMonthName } from "../../utils/feature.js";
+import { connectCustomMySql } from "../../database/connection.js";
 
 // update user profile
 //----------------------
@@ -86,6 +86,9 @@ const deleteUser = TryCatch(async (req, res, next) => {
 // get single truck reports
 //-------------------------
 const getSingleTruckReport = TryCatch(async (req, res, next) => {
+  const userId = req?.user?._id;
+  if (!userId) return next(createHttpError(400, "Please Login again"));
+  const { SensorData, dbConnection } = await connectCustomMySql(String(userId));
   const { timeTo, timeFrom, plateNumber } = req.query;
 
   // Variables for truck details
@@ -130,7 +133,7 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
   }
 
   // Fetch reports from the database, with or without truckId and date range filters
-  const reports = await sensorData.findAll(reportQuery);
+  const reports = await SensorData.findAll(reportQuery);
 
   // Modify the reports to include additional details
   const modifiedReports = await Promise.all(

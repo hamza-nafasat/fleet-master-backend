@@ -7,6 +7,12 @@ interface UserTypes {
   email: string;
   address: string;
   password: string;
+  customDb?: boolean;
+  customDbHost?: string;
+  customDbName?: string;
+  customDbUsername?: string;
+  customDbPassword?: string;
+  customDbPort?: number;
 }
 interface UserSchemaTypes extends UserTypes {
   _id: string;

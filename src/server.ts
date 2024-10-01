@@ -1,6 +1,6 @@
 import { server as socket } from "./app.js";
 import { config } from "./config/config.js";
-import { connectDB, connectPostgres } from "./database/connection.js";
+import { connectDB } from "./database/connection.js";
 import { configureCloudinary } from "./utils/cloudinary.js";
 import { notificationWatcher } from "./utils/mongoWatcher.js";
 
@@ -11,7 +11,6 @@ import { notificationWatcher } from "./utils/mongoWatcher.js";
     await configureCloudinary();
     // Database connection
     await connectDB(config.getEnv("DATABASE_URL"));
-    await connectPostgres();
 
     // sensor watcher
     // sensorWatcher();

@@ -18,6 +18,12 @@ const userSchema = new mongoose.Schema<UserSchemaTypes>(
     role: { type: String, default: "user" },
     interval: { type: Number, default: 30 },
     isVerified: { type: Boolean, default: false },
+    customDb: { type: Boolean, default: false },
+    customDbHost: { type: String },
+    customDbPassword: { type: String },
+    customDbName: { type: String },
+    customDbPort: { type: Number },
+    customDbUsername: { type: String },
     subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: "Subscriber" },
   },
   { timestamps: true }

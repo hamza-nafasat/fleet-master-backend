@@ -4,9 +4,9 @@ import { TryCatch } from "../../utils/tryCatch.js";
 import { DeviceTypes } from "../../types/device.types.js";
 import createHttpError from "http-errors";
 import Sensor from "../../models/sensorModel/sensor.model.js";
-import sensorData from "../../sequelizeSchemas/schema.js";
 import { config } from "../../config/config.js";
 import { doneAllFuncOnOneData } from "../../utils/mongoWatcher.js";
+import { connectCustomMySql } from "../../database/connection.js";
 
 // create device
 // -------------
@@ -102,10 +102,12 @@ const getSingleDeviceLatestData = TryCatch(async (req: Request, res: Response, n
 const getUserLatestDeviceData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
   const ownerId = req.user?._id;
   if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
+  const { SensorData, dbConnection } = await connectCustomMySql(String(ownerId));
+
   const { truckId, uniqueId } = req.query;
   if (!truckId || !uniqueId) return next(createHttpError.BadRequest("truckId and uniqueId are required"));
   // find data from my sql
-  const deviceLatestData = await sensorData.findOne({
+  const deviceLatestData = await SensorData.findOne({
     where: {
       truckId: truckId,
       uniqueId: uniqueId,
@@ -121,6 +123,9 @@ const getUserLatestDeviceData = TryCatch(async (req: Request, res: Response, nex
 // add sensor data
 // ----------------
 const addSensorData = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  let userId = req?.user?._id;
+  if (!userId) return next(createHttpError.BadRequest("Please Login again"));
+  const { SensorData, dbConnection } = await connectCustomMySql(String(userId));
   let {
     topic,
     type,
@@ -151,7 +156,7 @@ const addSensorData = TryCatch(async (req: Request, res: Response, next: NextFun
     gyroscope_yaw,
     maintenance_due,
   } = req.body;
-  const sensor = await sensorData.create({
+  const sensor = await SensorData.create({
     topic,
     type,
     uniqueId,
@@ -191,6 +196,8 @@ const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, ne
   const ownerId = req.user?._id?.toString();
   if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
 
+  const { dbConnection, SensorData } = await connectCustomMySql(String(ownerId));
+
   // Fetch all devices for this user
   const devicesOfThisUser = await Device.find({
     ownerId: ownerId,
@@ -198,14 +205,14 @@ const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, ne
     uniqueId: { $exists: true, $ne: null },
     assignedTo: { $exists: true, $ne: null },
   });
-  if (!devicesOfThisUser.length) return next(createHttpError.NotFound("Devices Not Found for this user"));
+  if (!devicesOfThisUser?.length) return next(createHttpError.NotFound("Devices Not Found for this user"));
 
   // Extract unique IDs and truckIds from the devices
   const uniqueIds = devicesOfThisUser.map((device: any) => device.uniqueId?.toString());
   const truckIds = devicesOfThisUser.map((device: any) => device.assignedTo?.toString());
 
   // Fetch the latest sensor data for all devices in a single query
-  const sensorsOfThisUsersDevices = await sensorData.findAll({
+  const sensorsOfThisUsersDevices = await SensorData.findAll({
     where: {
       uniqueId: uniqueIds,
       ownerId: ownerId,

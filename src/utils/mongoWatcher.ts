@@ -282,7 +282,7 @@ const doneAllFuncOnOneData = async (sensor: any) => {
           if (!isInFenceNotificationSent) {
             // add in sent notification
             addInSentNotification("infence", truckId);
-            // send notification
+            // send notification for in fence
             if (inFenceInClientNotification.platform == "platform") {
               await addNotificationInDb(
                 ownerId,
@@ -290,7 +290,8 @@ const doneAllFuncOnOneData = async (sensor: any) => {
                 "Truck Entered In Marked Area",
                 String(truckId)
               );
-            } else if (inFenceInClientNotification.platform == "email") {
+            }
+            if (inFenceInClientNotification.platform == "email") {
               const inFenceText = `Your vehicle with plate number <strong>${truckFullData?.plateNumber}</strong> which is currently connected with <strong>${truckFullData?.assignedTo?.firstName} ${truckFullData?.assignedTo?.lastName}</strong> is entered in marked area. Check more details here:  <a href="http://localhost:5173/dashboard/truck-detail/${truckFullData?._id}">Truck Details</a>`;
               await sendNotificationMail({
                 to: userData?.email,
@@ -319,10 +320,11 @@ const doneAllFuncOnOneData = async (sensor: any) => {
           if (!isOutFenceNotificationSent) {
             // add in sent notification
             addInSentNotification("outfence", truckId);
-            // send notification
+            // send notification for out fence
             if (outFenceInClientNotification?.platform == "platform") {
               await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
-            } else if (outFenceInClientNotification?.platform == "email") {
+            }
+            if (outFenceInClientNotification?.platform == "email") {
               const outFenceText = `Your vehicle with plate number <strong>${truckFullData?.plateNumber}</strong> is exited from marked area.`;
               await sendNotificationMail({
                 to: userData?.email,

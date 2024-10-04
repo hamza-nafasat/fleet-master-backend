@@ -35,7 +35,7 @@ export const connectCustomMySql = async (userId: any) => {
     const userProfile = await User.findById(userId);
     let dbConnection = sequelize;
     // if user have custom db credentials and custom db setted the connect with custom db
-    if (userProfile && userProfile.customDb === true) {
+    if (userProfile && userProfile.isCustomDb === true) {
       try {
         const { customDbHost, customDbName, customDbUsername, customDbPassword, customDbPort } =
           userProfile;

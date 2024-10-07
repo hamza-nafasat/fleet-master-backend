@@ -288,9 +288,22 @@ const getMyProfile = TryCatch(async (req, res, next) => {
 const updateMyProfile = TryCatch(async (req, res, next) => {
   const userId = req.user?._id;
   const file = req.file;
-  const { firstName, lastName, email, phoneNumber, interval } = req.body;
+  let { firstName, lastName, email, phoneNumber, interval, customDb } = req.body;
   if (!firstName && !lastName && !email && !phoneNumber && !interval && !file) {
     return next(createHttpError(400, "Please Provide Atleast One Field to Update"));
+  }
+  if (customDb) {
+    customDb = JSON.parse(customDb);
+    if (
+      customDb?.isCustomDb == "yes" &&
+      (!customDb?.customDbHost ||
+        !customDb?.customDbName ||
+        !customDb?.customDbUsername ||
+        !customDb?.customDbPassword ||
+        !customDb?.customDbPort)
+    ) {
+      return next(createHttpError(400, "Please Provide All Required Fields if U want to add CustomDb"));
+    }
   }
   const user = await User.findById(userId);
   if (!user) return next(createHttpError(404, "User Not Found"));
@@ -299,6 +312,15 @@ const updateMyProfile = TryCatch(async (req, res, next) => {
   if (email) user.email = email;
   if (phoneNumber) user.phoneNumber = phoneNumber;
   if (interval) user.interval = interval;
+  if (customDb && customDb?.isCustomDb == "yes") {
+    user.customDbHost = customDb?.customDbHost;
+    user.customDbName = customDb?.customDbName;
+    user.customDbUsername = customDb?.customDbUsername;
+    user.customDbPassword = customDb?.customDbPassword;
+    user.customDbPort = customDb?.customDbPort;
+    user.isCustomDb = true;
+  }
+  if (customDb && customDb?.isCustomDb == "no") user.isCustomDb = false;
   if (file) {
     const fileUrl = getDataUri(file);
     if (!fileUrl.content) return next(createHttpError(400, "Error While Making a Url of user Image"));

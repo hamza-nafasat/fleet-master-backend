@@ -197,6 +197,7 @@ const getUserLatestDevicesData = TryCatch(async (req: Request, res: Response, ne
   const ownerId = req.user?._id?.toString();
   if (!ownerId) return next(createHttpError.BadRequest("ownerId is required"));
   const { dbConnection, SensorData } = await connectCustomMySql(String(ownerId));
+  console.log("data coming from ", dbConnection.config.host);
 
   // Fetch all devices for this user
   const devicesOfThisUser = await Device.find({

@@ -36,6 +36,7 @@ export const connectCustomMySql = async (userId: any) => {
     let dbConnection = sequelize;
     // if user have custom db credentials and custom db setted the connect with custom db
     if (userProfile && userProfile.isCustomDb === true) {
+      let customDb = false;
       try {
         const { customDbHost, customDbName, customDbUsername, customDbPassword, customDbPort } =
           userProfile;
@@ -45,9 +46,13 @@ export const connectCustomMySql = async (userId: any) => {
             port: customDbPort || 3306,
             dialect: "mysql",
           });
+          customDb = true;
         }
         await dbConnection.authenticate();
-        console.log("Connected to custom MySql for user:", userId);
+        customDb
+          ? console.log("\n\nConnected to custom MySql for user:\n\n", userId)
+          : console.log("\n\nConnected to Global MySql successfully\n\n");
+
         const SensorData = defineSensorData(dbConnection);
         await dbConnection.sync();
         return { dbConnection, SensorData };
@@ -56,7 +61,7 @@ export const connectCustomMySql = async (userId: any) => {
       }
     }
     await dbConnection.authenticate();
-    console.log("Global MySql Database connection established successfully.");
+    console.log("\n\nConnected to Global MySql successfully\n\n");
     const SensorData = defineSensorData(dbConnection);
     await dbConnection.sync();
     return { dbConnection, SensorData };

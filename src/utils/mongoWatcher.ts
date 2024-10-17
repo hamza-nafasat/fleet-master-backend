@@ -207,7 +207,7 @@ const notificationWatcher = () => {
     if (change.operationType === "insert") {
       const document = change.fullDocument;
       // console.log("notification added", document);
-      const toId = document?.to;
+      const toId = document?.to || document?.ownerId;
       await emitNotification(socketEvent.NOTIFICATIONS, toId, "notification");
     }
   });

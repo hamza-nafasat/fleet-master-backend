@@ -1,8 +1,8 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 
 const reportsSchema = new Schema(
   {
-    ownerId: { type: String, required: true },
+    ownerId: { type: Types.ObjectId, ref: "User", required: true },
     truck: { type: Schema.Types.ObjectId, ref: "Truck", required: true },
     latitude: { type: Number },
     longitude: { type: Number },

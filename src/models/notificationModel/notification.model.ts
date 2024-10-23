@@ -3,7 +3,7 @@ import { NotificationSchemaTypes } from "../../types/notification.types.js";
 
 const notificationSchema = new Schema<NotificationSchemaTypes>(
   {
-    to: { type: Types.ObjectId, ref: "User", required: true },
+    to: {type:String, required: true },
     type: { type: String, required: true },
     message: { type: String, required: true },
     isRead: { type: Boolean, default: false },

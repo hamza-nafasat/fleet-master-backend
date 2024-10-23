@@ -36,11 +36,7 @@ const sensorWatcher = () => {
       if (watchPolygonTrucksData.has(String(truckId)) && device?._id) {
         const updateTruckPromise = Truck.findOneAndUpdate(
           {
-            $and: [
-              { _id: truckId },
-              { ["devices._id"]: device?._id },
-              { ["devices.uniqueId"]: device?._id },
-            ],
+            $and: [{ _id: truckId }, { ["devices._id"]: device?._id }, { ["devices.uniqueId"]: device?._id }],
           },
           { latitude: truckLatitude, longitude: truckLongitude },
           { new: true }
@@ -138,12 +134,7 @@ const sensorWatcher = () => {
                 addInSentNotification("outfence", truckId);
                 // send notification
                 if (outFenceInClientNotification?.platform == "platform") {
-                  await addNotificationInDb(
-                    ownerId,
-                    alertType,
-                    "Truck Crossed Marked Area",
-                    String(truckId)
-                  );
+                  await addNotificationInDb(ownerId, alertType, "Truck Crossed Marked Area", String(truckId));
                 } else if (outFenceInClientNotification?.platform == "email") {
                   const outFenceText = `Your vehicle with plate number <strong>${truckFullData?.plateNumber}</strong> is exited from marked area.`;
                   await sendNotificationMail({
@@ -207,7 +198,7 @@ const notificationWatcher = () => {
     if (change.operationType === "insert") {
       const document = change.fullDocument;
       // console.log("notification added", document);
-      const toId = document?.to || document?.ownerId;
+      const toId = document?.to;
       await emitNotification(socketEvent.NOTIFICATIONS, toId, "notification");
     }
   });

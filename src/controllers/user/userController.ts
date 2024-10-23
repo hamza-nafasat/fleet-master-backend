@@ -10,6 +10,7 @@ import { UserTypes } from "../../types/userTypes.js";
 import { TryCatch } from "../../utils/tryCatch.js";
 import { User } from "../../models/userModel/user.model.js";
 import { getDataUri, uploadOnCloudinary } from "../../utils/cloudinary.js";
+import { Employ } from "../../models/employModel/employ.model.js";
 
 //--------------------
 // register controller
@@ -141,8 +142,7 @@ const verifyRegistration = TryCatch(async (req: Request<{}, {}, { token: string 
   }
   // find user and verify token
   const user = await User.findById(decodedToken);
-  if (!user)
-    return res.status(400).sendFile(path.join(__dirName, "../../../public/verificationFailed.html"));
+  if (!user) return res.status(400).sendFile(path.join(__dirName, "../../../public/verificationFailed.html"));
 
   user.isVerified = true;
   // update user
@@ -252,8 +252,8 @@ const login = TryCatch(async (req, res, next) => {
   // get all body data
   const { email, password } = req.body;
   // match user
-  const user = await User.findOne({ email });
-
+  let user = await User.findOne({ email });
+  if (!user) user = await Employ.findOne({ email });
   if (user) {
     // compare password
     const matchPwd = await bcrypt.compare(password, user.password);
@@ -263,7 +263,7 @@ const login = TryCatch(async (req, res, next) => {
     const refreshToken = await JWTService().refreshToken(String(user._id));
     await JWTService().storeRefreshToken(String(refreshToken));
     res.cookie("accessToken", accessToken, accessTokenOptions);
-    res.cookie("refreshToken", refreshToken, refreshTokenOptions);
+    res.cookie("refreshToken", refreshToken, refreshTokenOptions);  
     return res.status(200).json({
       success: true,
       message: "You are logged in successfully",
@@ -277,10 +277,26 @@ const login = TryCatch(async (req, res, next) => {
 // get my profile
 //---------------
 const getMyProfile = TryCatch(async (req, res, next) => {
-  const userId = req.user?._id;
-  const user = await User.findById(userId).populate("subscriptionId");
+  const user = req.user;
+  let findUser;
+  if (user?.role == "admin" || user?.role == "user") {
+    findUser = await User.findById(user?._id).populate("subscriptionId");
+  } else {
+    let newUser: any = await Employ.findById(user?._id).populate({
+      path: "ownerId",
+      model: "User",
+      populate: [{ path: "subscriptionId" }],
+    });
+
+    findUser = {
+      ...newUser._doc,
+      subscriptionId: newUser?.ownerId?.subscriptionId,
+      ownerId: newUser?.ownerId?._id,
+    };
+  }
+
   if (!user) return next(createHttpError(404, "User Not Found"));
-  return res.status(200).json({ success: true, user });
+  return res.status(200).json({ success: true, user: findUser });
 });
 //---------------
 // Update my profile
@@ -332,9 +348,7 @@ const updateMyProfile = TryCatch(async (req, res, next) => {
   await user.save();
   const updatedUser = await User.findById(userId).populate("subscriptionId");
 
-  return res
-    .status(200)
-    .json({ success: true, message: "Profile Updated Successfully", data: updatedUser });
+  return res.status(200).json({ success: true, message: "Profile Updated Successfully", data: updatedUser });
 });
 //---------
 // logout

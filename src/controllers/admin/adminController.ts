@@ -78,8 +78,7 @@ const deleteUser = TryCatch(async (req, res, next) => {
   ]);
   if (trucks.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Trucks"));
   if (drivers.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Drivers"));
-  if (employees.deletedCount === 0)
-    return next(createHttpError(400, "Error While Deleting User Employees"));
+  if (employees.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Employees"));
   return res.status(200).json({ success: true, message: "User Deleted Successfully" });
 });
 
@@ -154,18 +153,13 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
       };
     })
   );
-  console.log("modifiedReports", modifiedReports);
+  // console.log("modifiedReports", modifiedReports);
 
   // Send the modified reports as a response
   res.status(200).json({ success: true, data: modifiedReports });
 });
 
 const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
-  // const { from } = req.query;
-  // if (from && ["last-year", "last-month", "last-week"].includes(String(from))) {
-  //   return res.status(200).json({ success: true, data: {} });
-  // }
-
   const today = new Date();
   const lastYear = new Date();
   const currentMonth = today.getMonth();
@@ -247,7 +241,7 @@ const getAdminDashboardDetails = TryCatch(async (req, res, next) => {
   }
 
   // Debugging log for chart data
-  console.log("chartData", chartData);
+  // console.log("chartData", chartData);
 
   // Return response with all details
   return res.status(200).json({

@@ -1,46 +1,48 @@
 import {
-    assignTruckToDriver,
-    attachDevice,
-    createNewTruck,
-    deleteTruck,
-    detachDevice,
-    getAllTrucks,
-    getSingleTruck,
-    removeTruckAssignment,
-    updateTruck,
+  assignTruckToDriver,
+  attachDevice,
+  createNewTruck,
+  deleteTruck,
+  detachDevice,
+  getAllTrucks,
+  getSingleTruck,
+  removeTruckAssignment,
+  updateTruck,
 } from "../../controllers/truck/truckController.js";
-import { auth } from "../../middlewares/auth.js";
+import { auth, isAnyAuthUser, isSiteManager } from "../../middlewares/auth.js";
 import { singleUpload } from "../../middlewares/multer.js";
 import handleValidatorError from "../../middlewares/validationHandler.js";
 import {
-    createTruckSanitizer,
-    singleTruckSanitizer,
-    updateTruckSanitizer,
+  createTruckSanitizer,
+  singleTruckSanitizer,
+  updateTruckSanitizer,
 } from "../../validation/truck.validation.js";
 
 export const truckRoutes = (app: any) => {
-    // create new truck
-    app.post(
-        "/api/truck/create",
-        auth,
-        singleUpload,
-        createTruckSanitizer,
-        handleValidatorError,
-        createNewTruck
-    );
+  // create new truck
+  app.post(
+    "/api/truck/create",
+    auth,
+    isSiteManager,
+    singleUpload,
+    createTruckSanitizer,
+    handleValidatorError,
+    createNewTruck
+  );
 
-    // update and delete truck
-    app.route("/api/truck/single/:truckId")
-        .get(auth, singleTruckSanitizer, handleValidatorError, getSingleTruck)
-        .put(auth, singleUpload, updateTruckSanitizer, handleValidatorError, updateTruck)
-        .delete(auth, singleTruckSanitizer, handleValidatorError, deleteTruck);
+  // update and delete truck
+  app
+    .route("/api/truck/single/:truckId")
+    .get(auth, isSiteManager, singleTruckSanitizer, handleValidatorError, getSingleTruck)
+    .put(auth, isSiteManager, singleUpload, updateTruckSanitizer, handleValidatorError, updateTruck)
+    .delete(auth, isSiteManager, singleTruckSanitizer, handleValidatorError, deleteTruck);
 
-    // get all trucks
-    app.get("/api/truck/all", auth, getAllTrucks);
+  // get all trucks
+  app.get("/api/truck/all", auth, isAnyAuthUser, getAllTrucks);
 
-    // attach device to truck
-    app.put("/api/truck/:truckId/attach-device", auth, attachDevice);
+  // attach device to truck
+  app.put("/api/truck/:truckId/attach-device", auth, isSiteManager, attachDevice);
 
-    // detach device from truck
-    app.put("/api/truck/:truckId/detach-device", auth, detachDevice);
+  // detach device from truck
+  app.put("/api/truck/:truckId/detach-device", auth, isSiteManager, detachDevice);
 };

@@ -1,5 +1,5 @@
 import { getAdminDashboardDetails, getSingleTruckReport } from "../../controllers/admin/adminController.js";
-import { auth } from "../../middlewares/auth.js";
+import { auth, isAnyAuthUser, isReportsManager } from "../../middlewares/auth.js";
 
 export const adminRoutes = (app: any) => {
   // // update user profile
@@ -10,8 +10,8 @@ export const adminRoutes = (app: any) => {
   // app.delete("/api/admin/user/:userId", auth, isAdmin, deleteUser);
 
   // get single truck reports
-  app.get("/api/admin/truck-reports", auth, getSingleTruckReport);
+  app.get("/api/admin/truck-reports", auth, isReportsManager, getSingleTruckReport);
 
   // get admin dashboard details
-  app.get("/api/admin/dashboard/details", auth, getAdminDashboardDetails);
+  app.get("/api/admin/dashboard/details", auth, isAnyAuthUser, getAdminDashboardDetails);
 };

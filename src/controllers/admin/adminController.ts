@@ -78,7 +78,8 @@ const deleteUser = TryCatch(async (req, res, next) => {
   ]);
   if (trucks.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Trucks"));
   if (drivers.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Drivers"));
-  if (employees.deletedCount === 0) return next(createHttpError(400, "Error While Deleting User Employees"));
+  if (employees.deletedCount === 0)
+    return next(createHttpError(400, "Error While Deleting User Employees"));
   return res.status(200).json({ success: true, message: "User Deleted Successfully" });
 });
 
@@ -89,6 +90,8 @@ const getSingleTruckReport = TryCatch(async (req, res, next) => {
   if (!userId) return next(createHttpError(400, "Please Login again"));
   const { SensorData, dbConnection } = await connectCustomMySql(String(userId));
   const { timeTo, timeFrom, plateNumber } = req.query;
+  if (!timeTo || !timeFrom || !plateNumber)
+    return next(createHttpError(400, "Please provide all required fields"));
 
   // Variables for truck details
   let driverName: string | undefined;

@@ -31,7 +31,10 @@ const createAlert = TryCatch(
 // -----------------
 const getAllAlerts = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
   const ownerId = req.user?._id;
+  if (!ownerId) return next(createHttpError(400, "Please Login to create a Driver"));
   const alerts = await Alert.find({ ownerId });
+  if (!alerts) return next(createHttpError(400, "No Alerts Found"));
+  console.log("alerts", alerts);
   res.status(200).json({ success: true, data: alerts });
 });
 

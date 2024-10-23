@@ -61,13 +61,11 @@ export const auth = TryCatch(async (req: Request, res: Response, next: NextFunct
     next(createHttpError(401, "Unauthorized user please login"));
   }
 });
-
 export const isAdmin = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
   if (req.user?.role !== "admin")
     return next(createHttpError(403, "You are not authorized for this operation"));
   next();
 });
-
 export const isSocketAuth = TryCatchSocket(async (err: Error, socket: any, next: (err?: Error) => void) => {
   try {
     const accessToken = socket.request.cookies?.accessToken;
@@ -93,4 +91,40 @@ export const isSocketAuth = TryCatchSocket(async (err: Error, socket: any, next:
   } catch (error) {
     next(createHttpError(401, "Unauthorized user please login"));
   }
+});
+export const isSiteManager = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  let user = req.user;
+  if (user?.role == "user") return next();
+  if (user?.role == "site-manager") {
+    req.user = { ...user?._doc, _id: user?.ownerId };
+    return next();
+  }
+  return next(createHttpError(403, "You are not authorized for this operation"));
+});
+export const isPaymentManager = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  let user = req.user;
+  if (user?.role == "user") return next();
+  if (user?.role == "payment-manager") {
+    req.user = { ...user?._doc, _id: user?.ownerId };
+    return next();
+  }
+  return next(createHttpError(403, "You are not authorized for this operation"));
+});
+export const isReportsManager = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  let user = req.user;
+  if (user?.role == "user") return next();
+  if (user?.role == "report-manager") {
+    req.user = { ...user?._doc, _id: user?.ownerId };
+    return next();
+  }
+  return next(createHttpError(403, "You are not authorized for this operation"));
+});
+export const isAnyAuthUser = TryCatch(async (req: Request, res: Response, next: NextFunction) => {
+  let user = req.user;
+  if (user?.role == "user") return next();
+  if (user?.role == "report-manager" || user?.role == "site-manager" || user?.role == "payment-manager") {
+    req.user = { ...user?._doc, _id: user?.ownerId };
+    return next();
+  }
+  return next(createHttpError(403, "You are not authorized for this operation"));
 });

@@ -1,30 +1,31 @@
 import {
-    addTruckAndArea,
-    createGeoFence,
-    deleteSingleGeoFence,
-    getAllGeoFences,
-    getSingleGeoFence,
-    removeTruckFromGeoFence,
-    updateSingleGeoFences,
+  addTruckAndArea,
+  createGeoFence,
+  deleteSingleGeoFence,
+  getAllGeoFences,
+  getSingleGeoFence,
+  removeTruckFromGeoFence,
+  updateSingleGeoFences,
 } from "../../controllers/geoFence/geoFenceController.js";
-import { auth } from "../../middlewares/auth.js";
+import { auth, isSiteManager } from "../../middlewares/auth.js";
 
 export const geoFneceRoutes = (app: any) => {
-    // create geofence
-    app.post("/api/geofence/create", auth, createGeoFence);
+  // create geofence
+  app.post("/api/geofence/create", auth, createGeoFence);
 
-    // get edit delete geofence
-    app.route("/api/geofence/single/:geoFenceId")
-        .get(auth, getSingleGeoFence)
-        .put(auth, updateSingleGeoFences)
-        .delete(auth, deleteSingleGeoFence);
+  // get edit delete geofence
+  app
+    .route("/api/geofence/single/:geoFenceId")
+    .get(auth, isSiteManager, getSingleGeoFence)
+    .put(auth, isSiteManager, updateSingleGeoFences)
+    .delete(auth, isSiteManager, deleteSingleGeoFence);
 
-    // add truck and area geofence
-    app.put("/api/geofence/add-truck/:geoFenceId", auth, addTruckAndArea);
+  // add truck and area geofence
+  app.put("/api/geofence/add-truck/:geoFenceId", auth, isSiteManager, addTruckAndArea);
 
-    // remove truck from geofence
-    app.put("/api/geofence/remove-truck/:geoFenceId", auth, removeTruckFromGeoFence);
+  // remove truck from geofence
+  app.put("/api/geofence/remove-truck/:geoFenceId", auth, isSiteManager, removeTruckFromGeoFence);
 
-    // get all geofences
-    app.get("/api/geofence/all", auth, getAllGeoFences);
+  // get all geofences
+  app.get("/api/geofence/all", auth, isSiteManager, getAllGeoFences);
 };

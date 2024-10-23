@@ -72,7 +72,7 @@ const updateSingleEmploy = TryCatch(async (req: Request<any, {}, OptionalEmployT
   const ownerId = req.user?._id;
   const { employId } = req.params;
   if (!isValidObjectId(employId)) return next(createHttpError(400, "Invalid Employ Id"));
-  const { firstName, lastName, email, role, phoneNumber } = req.body;
+  const { firstName, lastName, email, role, phoneNumber, password } = req.body;
   const image: Express.Multer.File | undefined = req.file;
   if (!firstName && !lastName && !email && !role && !phoneNumber && !image) {
     return next(createHttpError(400, "All Required fields are Not Provided!"));
@@ -86,6 +86,10 @@ const updateSingleEmploy = TryCatch(async (req: Request<any, {}, OptionalEmployT
   if (email) employ.email = email;
   if (role) employ.role = role;
   if (phoneNumber) employ.phoneNumber = phoneNumber;
+  if (password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    employ.password = hashedPassword;
+  }
   if (image) {
     // remove old file
     if (employ?.image?.public_id) await removeFromCloudinary(employ.image.public_id);
